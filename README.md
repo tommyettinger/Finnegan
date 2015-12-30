@@ -12,25 +12,33 @@ Finnegan is a tiny library meant to generate gibberish text that imitates an exi
 
 Currently, there's several generators already usable with a simple API, and a somewhat more complicated API if you need to make one from scratch. Of particular note is the ability to easily combine existing generators into a pidgin language or hybrid of the two. You can also add accented vowels and/or consonants to an existing generator, or remove accented characters from any String. The predefined constants for generators are:
  - `ENGLISH`, which sometimes comes close to Dutch, but uses lots of uncommon English spellings like "-ought"
+   - "Mont tiste frot; mousation hauddes?"
  - `FRENCH`, which uses accented characters too frequently for "real French", but does appear reasonably close
+   - "Fa veau, ja ri avé re orçe jai braï aisté."
  - `LOVECRAFT`, which is meant to imitate things like the occult texts and names of Great Old Ones in H.P. Lovecraft's Cthulhu Mythos
- - `GREEK_ROMANIZED`, which imitates the Greek language but uses the Latin alphabet entirely
- - `GREEK_AUTHENTIC`, which imitates the Greek language using the actual Greek alphabet
- - `RUSSIAN_ROMANIZED`, which imitates the Russian language but uses something like "Passport" romanization to the Latin alphabet
- - `RUSSIAN_AUTHENTIC`, which imitates the Russian language using the actual Cyrillic alphabet
+   - "Zvrugg pialuk, ya'as irlemrugle'eith iposh hmo-es nyeighi, glikreirk shaivro'ei!"
+ - `GREEK_ROMANIZED`, which imitates the Greek language but uses the Latin alphabet entirely; will generate the same sounds as GREEK_AUTHENTIC given the same seed
+   - "Psuilas alor; aipeomarta le liaspa..."
+ - `GREEK_AUTHENTIC`, which imitates the Greek language using the actual Greek alphabet; will generate the same sounds as GREEK_ROMANIZED given the same seed
+   - "Ψυιλασ αλορ; αιπεομαρτα λε λιασπα..."
+ - `RUSSIAN_ROMANIZED`, which imitates the Russian language but uses something like "Passport" romanization to the Latin alphabet; will generate the same sounds as RUSSIAN_AUTHENTIC given the same seed
+   - "Zhydotuf ruts pitsas, gogutiar shyskuchebab - gichapofeglor giunuz ieskaziuzhin."
+ - `RUSSIAN_AUTHENTIC`, which imitates the Russian language using the actual Cyrillic alphabet; will generate the same sounds as RUSSIAN_ROMANIZED given the same seed
+   - "Жыдотуф руц пйцас, гогутяр шыскучэбаб - гйчапофёглор гюнуз ъсказюжин."
 
 You can mix two generators using the `mix()` method:
 ```java
 Finnegan newGenerator = Finnegan.RUSSIAN_ROMANIZED.mix(Finnegan.ENGLISH, 0.35);
 // args are the other Finnegan and the portion of it to use
 ```
-This produces a generator that is roughly 1/3 English-style and roughly 2/3 romanized Russian-style.
+This produces a generator that is roughly 1/3 English-style and roughly 2/3 romanized Russian-style. Example text: "Ulyailsiamets, sazieskod eskatite aforyll giugleshynkor tieldodka thren - drat, kydoy."
 
 You can make a generator that uses no accented characters start using them using the `addAccents()` method:
 ```java
 Finnegan newGenerator = Finnegan.ENGLISH.addAccents(0.5, 0.15);
 // args are the fraction of vowels to add accents to, then consonants
 ```
+This produces a generator that looks like english but with roughly 50% of vowels with accents and 15% of consonants having some addition. Example text: "Filısm busæzzåtē thőy iornaifĭwıff; pĭbbarmî, frārrös knǻmîly..."
 
 To remove accents from a String that may contain accents (if you are displaying it in a font that may only support ASCII, for example), then you can use `removeAccents()`, which I should credit to [hashable](http://stackoverflow.com/a/1215117), to strip most accents from the String and replace "á" with "a", for example.
 
