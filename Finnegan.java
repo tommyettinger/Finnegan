@@ -27,7 +27,9 @@ import java.util.regex.Pattern;
  */
 public class Finnegan implements Serializable {
 
-    public class RNG {
+    public class RNG implements Serializable {
+        private static final long serialVersionUID = 4378460257281186370L;
+
         /**
          * 2 raised to the 53, - 1.
          */
@@ -942,6 +944,45 @@ public class Finnegan implements Serializable {
                 mc = accentConsonants(midConsonants, consonantInfluence),
                 cc = accentConsonants(closingConsonants, consonantInfluence),
                 cs = accentBoth(closingSyllables, vowelInfluence, consonantInfluence);
+        int[] lens = new int[syllableFrequencies.size()];
+        double[] odds = new double[syllableFrequencies.size()];
+        int i = 0;
+        for (Map.Entry<Integer, Double> kv : syllableFrequencies.entrySet()) {
+            lens[i] = kv.getKey();
+            odds[i++] = kv.getValue();
+        }
+        return new Finnegan(ov, mv, oc, mc, cc, cs, vowelSplitters, lens, odds,
+                vowelStartFrequency,
+                vowelEndFrequency,
+                vowelSplitFrequency,
+                syllableEndFrequency);
+    }
+    public Finnegan removeAccents() {
+
+        String[] ov = openingVowels.clone(),
+                mv = midVowels.clone(),
+                oc = openingConsonants.clone(),
+                mc = midConsonants.clone(),
+                cc = closingConsonants.clone(),
+                cs = closingSyllables.clone();
+        for (int i = 0; i < ov.length; i++) {
+            ov[i] = removeAccents(openingVowels[i]);
+        }
+        for (int i = 0; i < mv.length; i++) {
+            mv[i] = removeAccents(midVowels[i]);
+        }
+        for (int i = 0; i < oc.length; i++) {
+            oc[i] = removeAccents(openingConsonants[i]);
+        }
+        for (int i = 0; i < mc.length; i++) {
+            mc[i] = removeAccents(midConsonants[i]);
+        }
+        for (int i = 0; i < cc.length; i++) {
+            cc[i] = removeAccents(closingConsonants[i]);
+        }
+        for (int i = 0; i < cs.length; i++) {
+            cs[i] = removeAccents(closingSyllables[i]);
+        }
         int[] lens = new int[syllableFrequencies.size()];
         double[] odds = new double[syllableFrequencies.size()];
         int i = 0;
