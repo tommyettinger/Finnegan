@@ -1,4 +1,4 @@
-import put.in.your.source.Finnegan;
+import james.joyce.Finnegan;
 
 /**
  * A simple test of Finnegan. Not intended to be copied into your source code, just meant to test behavior.
