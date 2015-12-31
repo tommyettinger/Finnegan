@@ -188,11 +188,48 @@ public class Finnegan implements Serializable {
     private static final long serialVersionUID = -2578460257281186352L;
     public final String[] openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants,
             vowelSplitters, closingSyllables;
+    public boolean clean, sane;
     public final LinkedHashMap<Integer, Double> syllableFrequencies;
     protected double totalSyllableFrequency = 0.0;
     public final double vowelStartFrequency, vowelEndFrequency, vowelSplitFrequency, syllableEndFrequency;
     protected static final Pattern doubleRepeats = Pattern.compile("(.)\\1+(.)\\2+"),
             repeats = Pattern.compile("(.)\\1+"), diacritics = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+    protected static final Pattern[]
+            vulgarChecks = new Pattern[]
+            {
+                    Pattern.compile("[Ss]h.*[dt]"),
+                    Pattern.compile("[NnFf].*g"),
+                    Pattern.compile("[KkFfDdCc].*k"),
+                    Pattern.compile("[Bb]..?.?ch"),
+                    Pattern.compile("[WwHh]..?r"),
+                    Pattern.compile("[Tt]..?t"),
+                    Pattern.compile("[Pp][eio][eos]"),
+                    Pattern.compile("[Ff]..?rt"),
+                    Pattern.compile("[Aa]n..?[sl]"),
+                    Pattern.compile("[Aa]s{2}"),
+                    Pattern.compile("uh?nn?t"),
+                    Pattern.compile("[Mm]..?r.?d")
+            },
+            sanityChecks = new Pattern[]
+            {
+                    Pattern.compile("[AEIOUaeiou]{3}"),
+                    Pattern.compile("(\\w)\\1\\1"),
+                    Pattern.compile("(\\w)\\1(\\w)\\2"),
+                    Pattern.compile("[Aa][ae]"),
+                    Pattern.compile("[Uu][umlk]"),
+                    Pattern.compile("[Ii][iyqkhrl]"),
+                    Pattern.compile("[Oo][c]"),
+                    Pattern.compile("[Yy][aeiou]{2}"),
+                    Pattern.compile("[Rr][aeiouy]+[xrhp]"),
+                    Pattern.compile("[Qq]u[yu]"),
+                    Pattern.compile("[^oai]uch"),
+                    Pattern.compile("[^tcsz]hh"),
+                    Pattern.compile("[Hh][tcszi]h"),
+                    Pattern.compile("[Tt]t[^aeiouy]{2}"),
+                    Pattern.compile("[IYiy]h[^aeiouy ]"),
+                    Pattern.compile("[szSZrlRL][^aeiou][rlsz]"),
+                    Pattern.compile("[UIui][wy]")
+            };
     public RNG rng;
     public static final char[][] accentedVowels = new char[][]{
             new char[]{
@@ -304,7 +341,7 @@ public class Finnegan implements Serializable {
             new String[]{"h", "gl", "gr", "nd", "mr", "vr", "kr"},
             new String[]{"l", "p", "s", "t", "n", "k", "g", "x", "rl", "th", "gg", "gh", "ts", "lt", "rk", "kh", "sh", "ng", "shk"},
             new String[]{"aghn", "ulhu", "urath", "oigor", "alos", "'yeh", "achtal", "urath", "ikhet", "adzek"},
-            new String[]{"'", "-"}, new int[]{1, 2, 3}, new double[]{6, 7, 2}, 0.4, 0.31, 0.07, 0.04);
+            new String[]{"'", "-"}, new int[]{1, 2, 3}, new double[]{6, 7, 2}, 0.4, 0.31, 0.07, 0.04, false, true);
     /**
      * Imitation English; may seem closer to Dutch in some generated text, and is not exactly the best imitation.
      * Should seem pretty fake to many readers; does not filter out dictionary words. If you want to
@@ -353,7 +390,7 @@ public class Finnegan implements Serializable {
                     "ough", "aught", "ant", "ont", "oe", "ance", "ell", "eal", "oa", "urt", "ut", "iom", "ion", "ion", "ision", "ation", "ation", "ition",
                     "ily", "ily", "ily", "adly", "owly", "oorly", "ardly", "iedly",
             },
-            new String[]{}, new int[]{1, 2, 3, 4}, new double[]{7, 8, 4, 1}, 0.22, 0.1, 0.0, 0.25);
+            new String[]{}, new int[]{1, 2, 3, 4}, new double[]{7, 8, 4, 1}, 0.22, 0.1, 0.0, 0.25, true, true);
     /**
      * Imitation ancient Greek, romanized to use the Latin alphabet. Likely to seem pretty fake to many readers.
      * <br>
@@ -366,7 +403,7 @@ public class Finnegan implements Serializable {
             new String[]{"lph", "pl", "l", "l", "kr", "nch", "nx", "ps"},
             new String[]{"s", "p", "t", "ch", "n", "m", "s", "p", "t", "ch", "n", "m", "b", "g", "st", "rst", "rt", "sp", "rk", "ph", "x", "z", "nk", "ng", "th"},
             new String[]{"os", "os", "is", "us", "um", "eum", "ium", "iam", "us", "um", "es", "anes", "eros", "or", "ophon", "on", "otron"},
-            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3);
+            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3, false, true);
     /**
      * Imitation ancient Greek, using the original Greek alphabet. People may try to translate it and get gibberish.
      * Make sure the font you use to render this supports the Greek alphabet!
@@ -380,7 +417,7 @@ public class Finnegan implements Serializable {
             new String[]{"λϕ", "πλ", "λ", "λ", "κρ", "γχ", "γξ", "ψ"},
             new String[]{"σ", "π", "τ", "χ", "ν", "μ", "σ", "π", "τ", "χ", "ν", "μ", "β", "γ", "στ", "ρστ", "ρτ", "σπ", "ρκ", "ϕ", "ξ", "ζ", "γκ", "γγ", "θ"},
             new String[]{"ος", "ος", "ις", "υς", "υμ", "ευμ", "ιυμ", "ιαμ", "υς", "υμ", "ες", "ανες", "ερος", "ορ", "οϕον", "ον", "οτρον"},
-            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3);
+            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3, false, false);
 
     /**
      * Imitation modern French, using (too many of) the accented vowels that are present in the language. Translating it
@@ -417,7 +454,7 @@ public class Finnegan implements Serializable {
                     "im", "in", "in", "ien", "ien", "ion", "il", "eil", "oin", "oint", "iguïté", "ience", "incte",
                     "ang", "ong", "acré", "eau", "ouche", "oux", "oux", "ect", "ecri", "agne", "uer", "aix", "eth", "ut", "ant",
                     "anc", "anc", "anche", "ioche", "eaux", "ive", "eur", "ancois", "ecois"},
-            new String[]{}, new int[]{1, 2, 3}, new double[]{18, 7, 2}, 0.35, 1.0, 0.0, 0.55);
+            new String[]{}, new int[]{1, 2, 3}, new double[]{18, 7, 2}, 0.35, 1.0, 0.0, 0.55, false, true);
 
     /**
      * Imitation modern Russian, romanized to use the Latin alphabet. Likely to seem pretty fake to many readers.
@@ -436,7 +473,7 @@ public class Finnegan implements Serializable {
             new String[]{"b", "v", "g", "d", "zh", "z", "k", "l", "m", "n", "p", "r", "s", "t", "f", "kh", "ts", "ch", "sh",
                     "v", "f", "sk", "sk", "sk", "s", "b", "d", "d", "n", "r", "r"},
             new String[]{"odka", "odna", "usk", "ask", "usky", "ad", "ar", "ovich", "ev", "ov", "of", "agda", "etsky", "ich", "on", "akh", "iev", "ian"},
-            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12);
+            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12, true, true);
 
 
     /**
@@ -457,7 +494,7 @@ public class Finnegan implements Serializable {
             new String[]{"б", "в", "г", "д", "ж", "з", "к", "л", "м", "н", "п", "р", "с", "т", "ф", "х", "ц", "ч", "ш",
                     "в", "ф", "ск", "ск", "ск", "с", "б", "д", "д", "н", "р", "р"},
             new String[]{"одка", "одна", "уск", "аск", "ускы", "ад", "ар", "овйч", "ев", "ов", "оф", "агда", "ёцкы", "йч", "он", "ах", "ъв", "ян"},
-            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12);
+            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12, false, false);
 
     /**
      * Zero-arg constructor for a Finnegan; produces a Finnegan equivalent to Finnegan.ENGLISH .
@@ -503,7 +540,7 @@ public class Finnegan implements Serializable {
                         "ough", "aught", "ant", "ont", "oe", "ance", "ell", "eal", "oa", "urt", "ut", "iom", "ion", "ion", "ision", "ation", "ation", "ition",
                         "ily", "ily", "ily", "adly", "owly", "oorly", "ardly", "iedly",
                 },
-                new String[]{}, new int[]{1, 2, 3, 4}, new double[]{7, 8, 4, 1}, 0.22, 0.1, 0.0, 0.25);
+                new String[]{}, new int[]{1, 2, 3, 4}, new double[]{7, 8, 4, 1}, 0.22, 0.1, 0.0, 0.25, true, true);
     }
 
     /**
@@ -544,6 +581,50 @@ public class Finnegan implements Serializable {
                     String[] midConsonants, String[] closingConsonants, String[] closingSyllables, String[] vowelSplitters,
                     int[] syllableLengths, double[] syllableFrequencies, double vowelStartFrequency,
                     double vowelEndFrequency, double vowelSplitFrequency, double syllableEndFrequency) {
+        this(openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants, closingSyllables,
+                vowelSplitters, syllableLengths, syllableFrequencies, vowelStartFrequency, vowelEndFrequency,
+                vowelSplitFrequency, syllableEndFrequency, true, true);
+    }
+
+    /**
+     * This is a very complicated constructor! Maybe look at the calls to this to initialize static members of this
+     * class, LOVECRAFT and GREEK_ROMANIZED.
+     *
+     * @param openingVowels        String array where each element is a vowel or group of vowels that may appear at the start
+     *                             of a word or in the middle; elements may be repeated to make them more common
+     * @param midVowels            String array where each element is a vowel or group of vowels that may appear in the
+     *                             middle of the word; all openingVowels are automatically copied into this internally.
+     *                             Elements may be repeated to make them more common
+     * @param openingConsonants    String array where each element is a consonant or consonant cluster that can appear
+     *                             at the start of a word; elements may be repeated to make them more common
+     * @param midConsonants        String array where each element is a consonant or consonant cluster than can appear
+     *                             between vowels; all closingConsonants are automatically copied into this internally.
+     *                             Elements may be repeated to make them more common
+     * @param closingConsonants    String array where each element is a consonant or consonant cluster than can appear
+     *                             at the end of a word; elements may be repeated to make them more common
+     * @param closingSyllables     String array where each element is a syllable starting with a vowel and ending in
+     *                             whatever the word should end in; elements may be repeated to make them more common
+     * @param vowelSplitters       String array where each element is a mark that goes between vowels, so if "-" is in this,
+     *                             then "a-a" may be possible; elements may be repeated to make them more common
+     * @param syllableLengths      int array where each element is a possible number of syllables a word can use; closely
+     *                             tied to syllableFrequencies
+     * @param syllableFrequencies  double array where each element corresponds to an element in syllableLengths and
+     *                             represents how often each syllable count should appear relative to other counts; there
+     *                             is no need to restrict the numbers to add up to any other number
+     * @param vowelStartFrequency  a double between 0.0 and 1.0 that determines how often words start with vowels;
+     *                             higher numbers yield more words starting with vowels
+     * @param vowelEndFrequency    a double between 0.0 and 1.0 that determines how often words end with vowels; higher
+     *                             numbers yield more words ending in vowels
+     * @param vowelSplitFrequency  a double between 0.0 and 1.0 that, if vowelSplitters is not empty, determines how
+     *                             often a vowel will be split into two vowels separated by one of those splitters
+     * @param syllableEndFrequency a double between 0.0 and 1.0 that determines how often an element of
+     *                             closingSyllables is used instead of ending normally
+     */
+    public Finnegan(String[] openingVowels, String[] midVowels, String[] openingConsonants,
+                    String[] midConsonants, String[] closingConsonants, String[] closingSyllables, String[] vowelSplitters,
+                    int[] syllableLengths, double[] syllableFrequencies, double vowelStartFrequency,
+                    double vowelEndFrequency, double vowelSplitFrequency, double syllableEndFrequency,
+                    boolean sane, boolean clean) {
         rng = new RNG();
         this.openingVowels = openingVowels;
         this.midVowels = new String[openingVowels.length + midVowels.length];
@@ -584,14 +665,29 @@ public class Finnegan implements Serializable {
             this.syllableEndFrequency = 1.0 / syllableEndFrequency;
         else
             this.syllableEndFrequency = syllableEndFrequency;
+        this.clean = clean;
     }
 
+    protected boolean checkAll(String testing, Pattern[] checks)
+    {
+        String fixed = removeAccents(testing);
+        for (int i = 0; i < checks.length; i++) {
+            if(checks[i].matcher(fixed).find())
+                return false;
+        }
+        return true;
+    }
+    /**
+     * Generate a word from this Finnegan, using and changing the current seed.
+     * @param capitalize true if the word should start with a capital letter, false otherwise
+     * @return a word in the fake language as a String
+     */
     public String word(boolean capitalize)
     {
         return word(rng.state, capitalize);
     }
     /**
-     * Generate a word from this Finnegan.
+     * Generate a word from this Finnegan using the specified seed.
      *
      * @param seed        the RNG seed to use for the randomized string building
      * @param capitalize true if the word should start with a capital letter, false otherwise
@@ -599,53 +695,62 @@ public class Finnegan implements Serializable {
      */
     public String word(long seed, boolean capitalize) {
         rng.state = seed;
-        StringBuilder sb = new StringBuilder(20);
-        if (rng.nextDouble() < vowelStartFrequency) {
-            sb.append(rng.getRandomElement(openingVowels));
-            sb.append(rng.getRandomElement(midConsonants));
-        } else {
-            sb.append(rng.getRandomElement(openingConsonants));
-        }
+        String finished = "thaw"; // the last word in stolentelling
+        while(true) {
+            StringBuilder sb = new StringBuilder(20);
+            if (rng.nextDouble() < vowelStartFrequency) {
+                sb.append(rng.getRandomElement(openingVowels));
+                sb.append(rng.getRandomElement(midConsonants));
+            } else {
+                sb.append(rng.getRandomElement(openingConsonants));
+            }
 
-        double syllableChance = rng.nextDouble(totalSyllableFrequency);
-        int syllables = 1;
-        for (Map.Entry<Integer, Double> kv : syllableFrequencies.entrySet()) {
-            if (syllableChance < kv.getValue()) {
-                syllables = kv.getKey();
-                break;
-            } else
-                syllableChance -= kv.getValue();
-        }
-        for (int i = 0; i < syllables - 1; i++) {
-            sb.append(rng.getRandomElement(midVowels));
-            if (rng.nextDouble() < vowelSplitFrequency) {
-                sb.append(rng.getRandomElement(vowelSplitters));
-                sb.append(rng.getRandomElement(midVowels));
+            double syllableChance = rng.nextDouble(totalSyllableFrequency);
+            int syllables = 1;
+            for (Map.Entry<Integer, Double> kv : syllableFrequencies.entrySet()) {
+                if (syllableChance < kv.getValue()) {
+                    syllables = kv.getKey();
+                    break;
+                } else
+                    syllableChance -= kv.getValue();
             }
-            sb.append(rng.getRandomElement(midConsonants));
-        }
-        if (rng.nextDouble() < syllableEndFrequency) {
-            sb.append(rng.getRandomElement(closingSyllables));
-        } else {
-            sb.append(rng.getRandomElement(midVowels));
-            if (rng.nextDouble() < vowelSplitFrequency) {
-                sb.append(rng.getRandomElement(vowelSplitters));
+            for (int i = 0; i < syllables - 1; i++) {
                 sb.append(rng.getRandomElement(midVowels));
+                if (rng.nextDouble() < vowelSplitFrequency) {
+                    sb.append(rng.getRandomElement(vowelSplitters));
+                    sb.append(rng.getRandomElement(midVowels));
+                }
+                sb.append(rng.getRandomElement(midConsonants));
             }
-            if (rng.nextDouble() >= vowelEndFrequency) {
-                sb.append(rng.getRandomElement(closingConsonants));
-                if (rng.nextDouble() < syllableEndFrequency) {
-                    sb.append(rng.getRandomElement(closingSyllables));
+            if (rng.nextDouble() < syllableEndFrequency) {
+                sb.append(rng.getRandomElement(closingSyllables));
+            } else {
+                sb.append(rng.getRandomElement(midVowels));
+                if (rng.nextDouble() < vowelSplitFrequency) {
+                    sb.append(rng.getRandomElement(vowelSplitters));
+                    sb.append(rng.getRandomElement(midVowels));
+                }
+                if (rng.nextDouble() >= vowelEndFrequency) {
+                    sb.append(rng.getRandomElement(closingConsonants));
+                    if (rng.nextDouble() < syllableEndFrequency) {
+                        sb.append(rng.getRandomElement(closingSyllables));
+                    }
                 }
             }
+            if (capitalize)
+                sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
+            finished = sb.toString();
+            if(sane && !checkAll(finished, sanityChecks))
+                continue;
+            else if(clean && !checkAll(finished, vulgarChecks))
+                continue;
+            break;
         }
-        if (capitalize)
-            sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
-        return doubleRepeats.matcher(sb.toString()).replaceAll("$1$2");
+        return finished;
     }
 
     /**
-     * Generate a sentence from this Finnegan.
+     * Generate a sentence from this Finnegan, using and changing the current seed.
      * @param minWords                an int for the minimum number of words in a sentence; should be at least 1
      * @param maxWords                an int for the maximum number of words in a sentence; should be at least equal to minWords
      * @return a sentence in the gibberish language as a String
@@ -657,7 +762,7 @@ public class Finnegan implements Serializable {
     }
 
     /**
-     * Generate a sentence from this Finnegan.
+     * Generate a sentence from this Finnegan, using and changing the current seed.
      *
      * @param minWords                an int for the minimum number of words in a sentence; should be at least 1
      * @param maxWords                an int for the maximum number of words in a sentence; should be at least equal to minWords
@@ -715,6 +820,98 @@ public class Finnegan implements Serializable {
             sb.append(word(false));
         }
         sb.append(rng.getRandomElement(endPunctuation));
+        return sb.toString();
+    }
+    /**
+     * Generate a sentence from this Finnegan that fits in the given length limit..
+     *
+     * @param minWords                an int for the minimum number of words in a sentence; should be at least 1
+     * @param maxWords                an int for the maximum number of words in a sentence; should be at least equal to minWords
+     * @param midPunctuation          a String array where each element is a comma, semicolon, or the like that goes before a
+     *                                space in the middle of a sentence
+     * @param endPunctuation          a String array where each element is a period, question mark, or the like that goes at
+     *                                the very end of a sentence
+     * @param midPunctuationFrequency a double between 0.0 and 1.0 that determines how often Strings from
+     *                                midPunctuation should be inserted before spaces
+     * @param maxChars the longest string length this can produce; should be at least {@code 6 * minWords}
+     * @return a sentence in the gibberish language as a String
+     */
+    public String sentence(int minWords, int maxWords, String[] midPunctuation, String[] endPunctuation,
+                           double midPunctuationFrequency, int maxChars) {
+        return sentence(rng.state, minWords, maxWords, midPunctuation, endPunctuation, midPunctuationFrequency, maxChars);
+    }
+    /**
+     * Generate a sentence from this Finnegan using the specific starting RNG seed that fits in the given length limit.
+     *
+     * @param seed                    the RNG seed to use for the randomized string building
+     * @param minWords                an int for the minimum number of words in a sentence; should be at least 1
+     * @param maxWords                an int for the maximum number of words in a sentence; should be at least equal to minWords
+     * @param midPunctuation          a String array where each element is a comma, semicolon, or the like that goes before a
+     *                                space in the middle of a sentence
+     * @param endPunctuation          a String array where each element is a period, question mark, or the like that goes at
+     *                                the very end of a sentence
+     * @param midPunctuationFrequency a double between 0.0 and 1.0 that determines how often Strings from
+     *                                midPunctuation should be inserted before spaces
+     * @param maxChars the longest string length this can produce; should be at least {@code 6 * minWords}
+     * @return a sentence in the gibberish language as a String
+     */
+    public String sentence(long seed, int minWords, int maxWords, String[] midPunctuation, String[] endPunctuation,
+                           double midPunctuationFrequency, int maxChars) {
+        rng.state = seed;
+        if (minWords < 1)
+            minWords = 1;
+        if (minWords > maxWords)
+            maxWords = minWords;
+        if (midPunctuationFrequency > 1.0) {
+            midPunctuationFrequency = 1.0 / midPunctuationFrequency;
+        }
+        if(maxChars < 4)
+            return "!";
+        if(maxChars <= 5 * minWords) {
+            minWords = 1;
+            maxWords = 1;
+        }
+        int frustration = 0;
+        StringBuilder sb = new StringBuilder(maxChars);
+        String next = word(true);
+        while (next.length() >= maxChars - 1 && frustration < 50) {
+            next = word(false);
+            frustration++;
+        }
+        if(frustration >= 50) return "!";
+        sb.append(next);
+        for (int i = 1; i < minWords && frustration < 50 && sb.length() < maxChars - 7; i++) {
+            if (rng.nextDouble() < midPunctuationFrequency && sb.length() < maxChars - 3) {
+                sb.append(rng.getRandomElement(midPunctuation));
+            }
+            next = word(false);
+            while (sb.length() + next.length() >= maxChars - 2 && frustration < 50) {
+                next = word(false);
+                frustration++;
+            }
+            if(frustration >= 50) break;
+            sb.append(' ');
+            sb.append(next);
+        }
+        for (int i = minWords; i < maxWords && sb.length() < maxChars - 7 && rng.nextInt(2 * maxWords) > i && frustration < 50; i++) {
+            if (rng.nextDouble() < midPunctuationFrequency && sb.length() < maxChars - 3) {
+                sb.append(rng.getRandomElement(midPunctuation));
+            }
+            next = word(false);
+            while (sb.length() + next.length() >= maxChars - 2 && frustration < 50) {
+                next = word(false);
+                frustration++;
+            }
+            if(frustration >= 50) break;
+            sb.append(' ');
+            sb.append(next);
+        }
+        next = rng.getRandomElement(endPunctuation);
+        if(sb.length() + next.length() >= maxChars)
+            next = ".";
+        sb.append(next);
+        if(sb.length() > maxChars)
+            return "!";
         return sb.toString();
     }
 
@@ -930,7 +1127,8 @@ public class Finnegan implements Serializable {
                 vowelStartFrequency * myInfluence + other.vowelStartFrequency * otherInfluence,
                 vowelEndFrequency * myInfluence + other.vowelEndFrequency * otherInfluence,
                 vowelSplitFrequency * myInfluence + other.vowelSplitFrequency * otherInfluence,
-                syllableEndFrequency * myInfluence + other.syllableEndFrequency * otherInfluence);
+                syllableEndFrequency * myInfluence + other.syllableEndFrequency * otherInfluence,
+                sane || other.sane, true);
     }
 
     public Finnegan addAccents(double vowelInfluence, double consonantInfluence) {

@@ -10,41 +10,41 @@ public class FinneganTest
     public void testFinnegan()
     {
         Finnegan fin = Finnegan.ENGLISH;
-        fin.setSeed(0xbababadal);
+        fin.setSeed(0xf00df00l);
 
         for (int i = 0; i < 40; i++) {
             System.out.println(fin.sentence(5, 10, new String[]{",", ",", ",", ";"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.17));
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.17, 40));
         }
         fin = Finnegan.LOVECRAFT;
         for (int i = 0; i < 40; i++) {
             System.out.println(fin.sentence(3, 9, new String[]{",", ",", ";"},
-                    new String[]{".", ".", "!", "!", "?", "...", "..."}, 0.15));
+                    new String[]{".", ".", "!", "!", "?", "...", "..."}, 0.15, 30));
         }
         fin = Finnegan.GREEK_ROMANIZED;
         for (int i = 0; i < 40; i++) {
-            System.out.println(fin.sentence(5, 11, new String[]{",", ",", ";"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.2));
+            System.out.println(fin.sentence(4, 11, new String[]{",", ",", ";"},
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.2, 50));
         }
         fin = Finnegan.GREEK_AUTHENTIC;
         for (int i = 0; i < 40; i++) {
-            System.out.println(fin.sentence(5, 11, new String[]{",", ",", ";"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.2));
+            System.out.println(fin.sentence(4, 11, new String[]{",", ",", ";"},
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.2, 50));
         }
         fin = Finnegan.FRENCH;
         for (int i = 0; i < 40; i++) {
             System.out.println(fin.sentence(4, 12, new String[]{",", ",", ",", ";", ";"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.17));
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.17, 30));
         }
         fin = Finnegan.RUSSIAN_ROMANIZED;
         for (int i = 0; i < 40; i++) {
-            System.out.println(fin.sentence(6, 13, new String[]{",", ",", ",", ",", ";", " -"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.25));
+            System.out.println(fin.sentence(4, 13, new String[]{",", ",", ",", ",", ";", " -"},
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.25, 30));
         }
         fin = Finnegan.RUSSIAN_AUTHENTIC;
         for (int i = 0; i < 40; i++) {
-            System.out.println(fin.sentence(6, 13, new String[]{",", ",", ",", ",", ";", " -"},
-                    new String[]{".", ".", ".", "!", "?", "..."}, 0.25));
+            System.out.println(fin.sentence(4, 13, new String[]{",", ",", ",", ",", ";", " -"},
+                    new String[]{".", ".", ".", "!", "?", "..."}, 0.25, 30));
         }
 
         fin = Finnegan.ENGLISH.mix(Finnegan.FRENCH, 0.5);
