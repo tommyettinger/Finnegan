@@ -178,6 +178,19 @@ public class Finnegan implements Serializable {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RNG rng = (RNG) o;
+            return state == rng.state;
+        }
+
+        @Override
+        public int hashCode() {
+            return (int) (state ^ (state >>> 32));
+        }
+
+        @Override
         public String toString() {
             return "RNG{" +
                     "state=" + state +
@@ -197,26 +210,28 @@ public class Finnegan implements Serializable {
     protected static final Pattern[]
             vulgarChecks = new Pattern[]
             {
-                    Pattern.compile("[Ss]h.*[dt]"),
-                    Pattern.compile("[NnFf].*g"),
-                    Pattern.compile("[KkFfDdCc].*k"),
+                    Pattern.compile("[SsCc]h.*[dtf]"),
+                    Pattern.compile("([Pp]h)|[KkFfDdCc].{1,4}[kcx]"), // lots of these end in a 'k' sound, huh
                     Pattern.compile("[Bb]..?.?ch"),
                     Pattern.compile("[WwHh]..?r"),
                     Pattern.compile("[Tt]..?t"),
-                    Pattern.compile("[Pp][eio][eos]"),
-                    Pattern.compile("[Ff]..?rt"),
-                    Pattern.compile("[Aa]n..?[sl]"),
+                    Pattern.compile("([Pp]h)|[Ff]..?rt"),
+                    Pattern.compile("([Ss]h)|[j]i.?[sz]"),
+                    Pattern.compile("[Aa]n..?[slz]"),
                     Pattern.compile("[Aa]s{2}"),
-                    Pattern.compile("uh?nn?t"),
-                    Pattern.compile("[Mm]..?r.?d")
+                    Pattern.compile(".uh?nn?t"),
+                    Pattern.compile("[NnFf]..?g"), // might as well remove two possible slurs with one check
+                    Pattern.compile("[Pp][eiou][eos]"), // the grab bag of juvenile words
+                    Pattern.compile("[Mm]..?r.?d"), // should pick up the #1 obscenity from Spanish and French
+                    Pattern.compile("[Gg]h?[ae][ye]") // could be inappropriate for random text
             },
             sanityChecks = new Pattern[]
             {
                     Pattern.compile("[AEIOUaeiou]{3}"),
                     Pattern.compile("(\\w)\\1\\1"),
-                    Pattern.compile("(\\w)\\1(\\w)\\2"),
+                    Pattern.compile("(.)\\1(.)\\2"),
                     Pattern.compile("[Aa][ae]"),
-                    Pattern.compile("[Uu][umlk]"),
+                    Pattern.compile("[Uu][umlkj]"),
                     Pattern.compile("[Ii][iyqkhrl]"),
                     Pattern.compile("[Oo][c]"),
                     Pattern.compile("[Yy][aeiou]{2}"),
@@ -228,7 +243,9 @@ public class Finnegan implements Serializable {
                     Pattern.compile("[Tt]t[^aeiouy]{2}"),
                     Pattern.compile("[IYiy]h[^aeiouy ]"),
                     Pattern.compile("[szSZrlRL][^aeiou][rlsz]"),
-                    Pattern.compile("[UIui][wy]")
+                    Pattern.compile("[UIuiYy][wy]"),
+                    Pattern.compile("^[UIui][ae]"),
+                    Pattern.compile("q$")
             };
     public RNG rng;
     public static final char[][] accentedVowels = new char[][]{
@@ -325,8 +342,13 @@ public class Finnegan implements Serializable {
      * @return a string with all accented characters replaced with their (possibly ASCII) counterparts
      */
     public String removeAccents(String str) {
-        String nfdNormalizedString = Normalizer.normalize(str, Normalizer.Form.NFD);
-        return diacritics.matcher(nfdNormalizedString).replaceAll("");
+        String alteredString = Normalizer.normalize(str, Normalizer.Form.NFD);
+        alteredString = diacritics.matcher(alteredString).replaceAll("");
+        alteredString = alteredString.replace('æ', 'a');
+        alteredString = alteredString.replace('œ', 'o');
+        alteredString = alteredString.replace('Æ', 'A');
+        alteredString = alteredString.replace('Œ', 'O');
+        return alteredString;
     }
 
     /**
@@ -619,13 +641,21 @@ public class Finnegan implements Serializable {
      *                             often a vowel will be split into two vowels separated by one of those splitters
      * @param syllableEndFrequency a double between 0.0 and 1.0 that determines how often an element of
      *                             closingSyllables is used instead of ending normally
+     * @param sane true to perform sanity checks for pronounce-able sounds to most English speakers, replacing many
+     *             words that are impossible to say; slows down generation slightly, irrelevant for non-Latin alphabets
+     * @param clean true to perform vulgarity/obscenity checks on the word, replacing it if it is too close to a
+     *              common English vulgarity, obscenity, or slur/epithet; slows down generation slightly
      */
     public Finnegan(String[] openingVowels, String[] midVowels, String[] openingConsonants,
                     String[] midConsonants, String[] closingConsonants, String[] closingSyllables, String[] vowelSplitters,
                     int[] syllableLengths, double[] syllableFrequencies, double vowelStartFrequency,
                     double vowelEndFrequency, double vowelSplitFrequency, double syllableEndFrequency,
                     boolean sane, boolean clean) {
-        rng = new RNG();
+        rng = new RNG(megaHash(openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants,
+                closingSyllables, vowelSplitters) ^ Arrays.hashCode(syllableLengths)
+                ^ (Arrays.hashCode(syllableFrequencies) << 31) ^
+                Double.doubleToLongBits(vowelStartFrequency + 19.0 * (vowelEndFrequency + 19.0 * (vowelSplitFrequency
+                        + 19.0 * syllableEndFrequency))));
         this.openingVowels = openingVowels;
         this.midVowels = new String[openingVowels.length + midVowels.length];
         System.arraycopy(midVowels, 0, this.midVowels, 0, midVowels.length);
@@ -666,6 +696,19 @@ public class Finnegan implements Serializable {
         else
             this.syllableEndFrequency = syllableEndFrequency;
         this.clean = clean;
+        this.sane = sane;
+    }
+    protected long megaHash(String[]... arrays)
+    {
+        long hsh = 0x123456789ABCDEF0L;
+        long offset = 21;
+        for (int i = 0; i < arrays.length; i++) {
+            hsh ^= arrays[i].length * (i + 159);
+            for (int j = 0; j < arrays[i].length && j < 16; j++, offset = (offset + 1) % 32) {
+                hsh ^= arrays[i][j].hashCode() << offset;
+            }
+        }
+        return hsh;
     }
 
     protected boolean checkAll(String testing, Pattern[] checks)
@@ -875,7 +918,7 @@ public class Finnegan implements Serializable {
         StringBuilder sb = new StringBuilder(maxChars);
         String next = word(true);
         while (next.length() >= maxChars - 1 && frustration < 50) {
-            next = word(false);
+            next = word(true);
             frustration++;
         }
         if(frustration >= 50) return "!";
@@ -916,6 +959,8 @@ public class Finnegan implements Serializable {
     }
 
     protected String[] merge1000(String[] me, String[] other, double otherInfluence) {
+        if(other.length <= 0 && me.length <= 0)
+            return new String[]{};
         String[] ret = new String[1000];
         int otherCount = (int) (1000 * otherInfluence);
         int idx = 0;
@@ -929,6 +974,12 @@ public class Finnegan implements Serializable {
             String[] tmp = rng.shuffle(me);
             for (; idx < 1000; idx++) {
                 ret[idx] = tmp[idx % tmp.length];
+            }
+        }
+        else
+        {
+            for (; idx < 1000; idx++) {
+                ret[idx] = other[idx % other.length];
             }
         }
         return ret;
@@ -1099,6 +1150,7 @@ public class Finnegan implements Serializable {
     public Finnegan mix(Finnegan other, double otherInfluence) {
         otherInfluence = Math.max(0.0, Math.min(otherInfluence, 1.0));
         double myInfluence = 1.0 - otherInfluence;
+        long oldState = rng.state;
         rng.state = (hashCode() & 0xffffffffL) | ((other.hashCode() & 0xffffffffL) << 32)
                 ^ Double.doubleToLongBits(otherInfluence);
         String[] ov = merge1000(openingVowels, other.openingVowels, otherInfluence),
@@ -1123,17 +1175,21 @@ public class Finnegan implements Serializable {
             lens[i] = kv.getKey();
             odds[i++] = kv.getValue();
         }
-        return new Finnegan(ov, mv, oc, mc, cc, cs, splitters, lens, odds,
+        Finnegan finished = new Finnegan(ov, mv, oc, mc, cc, cs, splitters, lens, odds,
                 vowelStartFrequency * myInfluence + other.vowelStartFrequency * otherInfluence,
                 vowelEndFrequency * myInfluence + other.vowelEndFrequency * otherInfluence,
                 vowelSplitFrequency * myInfluence + other.vowelSplitFrequency * otherInfluence,
                 syllableEndFrequency * myInfluence + other.syllableEndFrequency * otherInfluence,
                 sane || other.sane, true);
+        finished.rng.state = rng.state;
+        rng.state = oldState;
+        return finished;
     }
 
     public Finnegan addAccents(double vowelInfluence, double consonantInfluence) {
         vowelInfluence = Math.max(0.0, Math.min(vowelInfluence, 1.0));
         consonantInfluence = Math.max(0.0, Math.min(consonantInfluence, 1.0));
+        long oldState = rng.state;
         rng.state = (hashCode() & 0xffffffffL) ^ ((Double.doubleToLongBits(vowelInfluence) & 0xffffffffL) |
                 (Double.doubleToLongBits(consonantInfluence) << 32));
         String[] ov = accentVowels(openingVowels, vowelInfluence),
@@ -1149,11 +1205,14 @@ public class Finnegan implements Serializable {
             lens[i] = kv.getKey();
             odds[i++] = kv.getValue();
         }
-        return new Finnegan(ov, mv, oc, mc, cc, cs, vowelSplitters, lens, odds,
+        Finnegan finished = new Finnegan(ov, mv, oc, mc, cc, cs, vowelSplitters, lens, odds,
                 vowelStartFrequency,
                 vowelEndFrequency,
                 vowelSplitFrequency,
                 syllableEndFrequency);
+        finished.rng.state = rng.state;
+        rng.state = oldState;
+        return finished;
     }
     public Finnegan removeAccents() {
 
@@ -1188,11 +1247,13 @@ public class Finnegan implements Serializable {
             lens[i] = kv.getKey();
             odds[i++] = kv.getValue();
         }
-        return new Finnegan(ov, mv, oc, mc, cc, cs, vowelSplitters, lens, odds,
+        Finnegan finished =  new Finnegan(ov, mv, oc, mc, cc, cs, vowelSplitters, lens, odds,
                 vowelStartFrequency,
                 vowelEndFrequency,
                 vowelSplitFrequency,
                 syllableEndFrequency);
+        finished.rng.state = rng.state;
+        return finished;
     }
 
     @Override
@@ -1201,7 +1262,7 @@ public class Finnegan implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
 
         Finnegan that = (Finnegan) o;
-
+        if(that.rng.state != rng.state) return false;
         if (Double.compare(that.totalSyllableFrequency, totalSyllableFrequency) != 0) return false;
         if (Double.compare(that.vowelStartFrequency, vowelStartFrequency) != 0) return false;
         if (Double.compare(that.vowelEndFrequency, vowelEndFrequency) != 0) return false;
@@ -1247,6 +1308,11 @@ public class Finnegan implements Serializable {
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(syllableEndFrequency);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = rng.state;
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + ((sane) ? 6 : 1);
+        result = 31 * result + ((clean) ? 6 : 1);
+
         return result;
     }
 
@@ -1266,6 +1332,8 @@ public class Finnegan implements Serializable {
                 ", vowelEndFrequency=" + vowelEndFrequency +
                 ", vowelSplitFrequency=" + vowelSplitFrequency +
                 ", syllableEndFrequency=" + syllableEndFrequency +
+                ", sane=" + sane +
+                ", clean=" + clean +
                 ", RNG=" + rng +
                 '}';
     }
