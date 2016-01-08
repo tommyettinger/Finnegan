@@ -210,20 +210,20 @@ public class Finnegan implements Serializable {
     protected static final Pattern[]
             vulgarChecks = new Pattern[]
             {
-                    Pattern.compile("[SsCc]h.*[dtf]"),
-                    Pattern.compile("([Pp]h)|[KkFfDdCc].{1,4}[kcx]"), // lots of these end in a 'k' sound, huh
-                    Pattern.compile("[Bb]..?.?ch"),
-                    Pattern.compile("[WwHh]..?r"),
-                    Pattern.compile("[Tt]..?t"),
-                    Pattern.compile("([Pp]h)|[Ff]..?rt"),
-                    Pattern.compile("([Ss]h)|[j]i.?[sz]"),
-                    Pattern.compile("[Aa]n..?[slz]"),
-                    Pattern.compile("[Aa]s{2}"),
-                    Pattern.compile(".uh?nn?t"),
+                    Pattern.compile("[SsξCcсςС][hнН].*[dtтτТΤf]"),
+                    Pattern.compile("([PpрρРΡ][hнН])|[KkкκКΚFfDdCcсςС].{1,4}[kcсςСxхжχХЖΧ]"), // lots of these end in a 'k' sound, huh
+                    Pattern.compile("[BbъыбвβЪЫБВΒ]..?.?[cсςС][hнН]"),
+                    Pattern.compile("[WwшщψШЩHhнН]..?[rяЯ]"),
+                    Pattern.compile("[TtтτТΤ]..?[tтτТΤ]"),
+                    Pattern.compile("([PpрρРΡ][hнН])|[Ff]..?[rяЯ][tтτТΤ]"),
+                    Pattern.compile("([Ssξ][hнН])|[j][iτιΙ].?[sξzΖ]"),
+                    Pattern.compile("[AaаαАΑΛ][nийИЙΝ]..?[sξlιζzΖ]"),
+                    Pattern.compile("[AaаαАΑΛ][sξ][sξ]"),
+                    Pattern.compile(".[uμυν][hнН]?[nийИЙΝ]+[tтτТΤ]"),
                     Pattern.compile("[NnFf]..?g"), // might as well remove two possible slurs with one check
-                    Pattern.compile("[Pp][eiou][eos]"), // the grab bag of juvenile words
-                    Pattern.compile("[Mm]..?r.?d"), // should pick up the #1 obscenity from Spanish and French
-                    Pattern.compile("[Gg]h?[ae][ye]") // could be inappropriate for random text
+                    Pattern.compile("[PpрρРΡ][eеёзξεЕЁЗΞΕΣioоюσοОЮΣΟuμυν][eеёзξεЕЁЗΞΕΣoоюσοОЮΣΟsξ]"), // the grab bag of juvenile words
+                    Pattern.compile("[MmмМΜ]..?[rяЯ].?d"), // should pick up the #1 obscenity from Spanish and French
+                    Pattern.compile("[Gg][hнН]?[aаαАΑΛeеёзξεЕЁЗΞΕΣ][yуλγУΥeеёзξεЕЁЗΞΕΣ]") // could be inappropriate for random text
             },
             sanityChecks = new Pattern[]
             {
