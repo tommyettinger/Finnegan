@@ -78,6 +78,12 @@ public class FinneganTest
             System.out.println(fin.sentence(4, 10, new String[]{",", ",", ",", ",", ";", " -"},
                     new String[]{".", ".", ".", "!", "?", "..."}, 0.22));
         }
+
+        fin = Finnegan.JAPANESE_ROMANIZED;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(5, 8, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 30));
+        }
         System.out.println(Finnegan.ENGLISH.word(0xbababadal, false));
 
     }
