@@ -82,9 +82,45 @@ public class FinneganTest
         fin = Finnegan.JAPANESE_ROMANIZED;
         for (int i = 0; i < 40; i++) {
             System.out.println(fin.sentence(5, 8, new String[]{",", ",", ",", ",", ";", ";"},
-                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 30));
+                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 50));
         }
-        System.out.println(Finnegan.ENGLISH.word(0xbababadal, false));
+
+        fin = Finnegan.SWAHILI;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(5, 8, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 50));
+        }
+
+        fin = Finnegan.SOMALI;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(5, 8, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 50));
+        }
+
+        fin = Finnegan.HINDI_ROMANIZED;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(5, 8, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "?", "...", "..."}, 0.12, 50));
+        }
+
+        fin = Finnegan.FANTASY_NAME;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(3, 7, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "!", "?", "...", "..."}, 0.2, 50));
+        }
+        fin = Finnegan.FANCY_FANTASY_NAME;
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(3, 7, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "!", "?", "...", "..."}, 0.2, 50));
+        }
+
+        fin = Finnegan.FRENCH.mix(Finnegan.JAPANESE_ROMANIZED, 0.5)
+                .mix(Finnegan.RUSSIAN_ROMANIZED, 0.1).mix(Finnegan.GREEK_ROMANIZED, 0.075);
+        for (int i = 0; i < 40; i++) {
+            System.out.println(fin.sentence(3, 7, new String[]{",", ",", ",", ",", ";", ";"},
+                    new String[]{".", ".", ".", "!", "!", "?", "...", "..."}, 0.2, 50));
+        }
+        System.out.println(Finnegan.ENGLISH.word(0xBABABADAL, false));
 
     }
 }

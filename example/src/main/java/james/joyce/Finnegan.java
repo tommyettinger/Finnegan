@@ -2,9 +2,7 @@ package james.joyce;
 
 import java.io.Serializable;
 import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -168,6 +166,36 @@ public class Finnegan implements Serializable {
             }
             return array;
         }
+        /**
+         * Shuffle a {@link List} using the Fisher-Yates algorithm.
+         * @param elements a List of T; will not be modified
+         * @param <T> can be any non-primitive type.
+         * @return a shuffled ArrayList containing the whole of elements in pseudo-random order.
+         */
+        public <T> ArrayList<T> shuffle(List<T> elements)
+        {
+            ArrayList<T> al = new ArrayList<T>(elements);
+            int n = al.size();
+            for (int i = 0; i < n; i++)
+            {
+                Collections.swap(al, i + nextInt(n - i), i);
+            }
+            return al;
+        }
+
+        /**
+         * Gets a random portion of a List and returns it as a new List. Will only use a given position in the given
+         * List at most once; does this by shuffling a copy of the List and getting a section of it.
+         * @param data a List of T; will not be modified.
+         * @param count the non-negative number of elements to randomly take from data
+         * @param <T> can be any non-primitive type
+         * @return a List of T that has length equal to the smaller of count or data.length
+         */
+        public <T> List<T> randomPortion(List<T> data, int count)
+        {
+            return shuffle(data).subList(0, Math.min(count, data.size()));
+        }
+
 
         public long getState() {
             return state;
@@ -206,19 +234,21 @@ public class Finnegan implements Serializable {
     protected double totalSyllableFrequency = 0.0;
     public final double vowelStartFrequency, vowelEndFrequency, vowelSplitFrequency, syllableEndFrequency;
     protected final Pattern[] sanityChecks;
-    protected static final Pattern doubleRepeats = Pattern.compile("(.)\\1+(.)\\2+"),
-            repeats = Pattern.compile("(.)\\1+"), diacritics = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+    public ArrayList<Modifier> modifiers;
+    protected static final Pattern
+            repeats = Pattern.compile("(.)\\1+"),
+            diacritics = Pattern.compile("[\\u0300-\\u036F\\u1DC0-\\u1DFF]+");
     public static final Pattern[]
             vulgarChecks = new Pattern[]
             {
                     Pattern.compile("[SsξCcсςС][hнН].*[dtтτТΤf]"),
-                    Pattern.compile("([PpрρРΡ][hнН])|[KkкκКΚFfDdCcсςС].{1,4}[kcсςСxхжχХЖΧ]"), // lots of these end in a 'k' sound, huh
+                    Pattern.compile("([PpрρРΡ][hнН])|[KkкκКΚFfDdCcсςС].{1,4}[KkкκКΚCcсςСxхжχХЖΧ]"), // lots of these end in a 'k' sound, huh
                     Pattern.compile("[BbъыбвβЪЫБВΒ]..?.?[cсςС][hнН]"),
                     Pattern.compile("[WwшщψШЩHhнН]..?[rяЯ]"),
                     Pattern.compile("[TtтτТΤ]..?[tтτТΤ]"),
                     Pattern.compile("([PpрρРΡ][hнН])|[Ff]..?[rяЯ][tтτТΤ]"),
                     Pattern.compile("([Ssξ][hнН])|[j][iτιΙ].?[sξzΖ]"),
-                    Pattern.compile("[AaаαАΑΛ][nийИЙΝ]..?[sξlιζzΖ]"),
+                    Pattern.compile("[AaаαАΑΛ][NnийИЙΝ]..?[SsξlιζzΖ]"),
                     Pattern.compile("[AaаαАΑΛ][sξ][sξ]"),
                     Pattern.compile(".[uμυν][hнН]?[nийИЙΝ]+[tтτТΤ]"),
                     Pattern.compile("[NnFf]..?g"), // might as well remove two possible slurs with one check
@@ -227,27 +257,27 @@ public class Finnegan implements Serializable {
                     Pattern.compile("[Gg][hнН]?[aаαАΑΛeеёзξεЕЁЗΞΕΣ][yуλγУΥeеёзξεЕЁЗΞΕΣ]") // could be inappropriate for random text
             },
             englishSanityChecks = new Pattern[]
-            {
-                    Pattern.compile("[AEIOUaeiou]{3}"),
-                    Pattern.compile("(\\w)\\1\\1"),
-                    Pattern.compile("(.)\\1(.)\\2"),
-                    Pattern.compile("[Aa][ae]"),
-                    Pattern.compile("[Uu][umlkj]"),
-                    Pattern.compile("[Ii][iyqkhrl]"),
-                    Pattern.compile("[Oo][c]"),
-                    Pattern.compile("[Yy][aeiou]{2}"),
-                    Pattern.compile("[Rr][aeiouy]+[xrhp]"),
-                    Pattern.compile("[Qq]u[yu]"),
-                    Pattern.compile("[^oai]uch"),
-                    Pattern.compile("[^tcsz]hh"),
-                    Pattern.compile("[Hh][tcszi]h"),
-                    Pattern.compile("[Tt]t[^aeiouy]{2}"),
-                    Pattern.compile("[IYiy]h[^aeiouy ]"),
-                    Pattern.compile("[szSZrlRL][^aeiou][rlsz]"),
-                    Pattern.compile("[UIuiYy][wy]"),
-                    Pattern.compile("^[UIui][ae]"),
-                    Pattern.compile("q$")
-            },
+                    {
+                            Pattern.compile("[AEIOUaeiou]{3}"),
+                            Pattern.compile("(\\w)\\1\\1"),
+                            Pattern.compile("(.)\\1(.)\\2"),
+                            Pattern.compile("[Aa][ae]"),
+                            Pattern.compile("[Uu][umlkj]"),
+                            Pattern.compile("[Ii][iyqkhrl]"),
+                            Pattern.compile("[Oo][c]"),
+                            Pattern.compile("[Yy][aeiou]{2}"),
+                            Pattern.compile("[Rr][aeiouy]+[xrhp]"),
+                            Pattern.compile("[Qq]u[yu]"),
+                            Pattern.compile("[^oai]uch"),
+                            Pattern.compile("[^tcsz]hh"),
+                            Pattern.compile("[Hh][tcszi]h"),
+                            Pattern.compile("[Tt]t[^aeiouy]{2}"),
+                            Pattern.compile("[IYiy]h[^aeiouy ]"),
+                            Pattern.compile("[szSZrlRL][^aeiou][rlsz]"),
+                            Pattern.compile("[UIuiYy][wy]"),
+                            Pattern.compile("^[UIui][ae]"),
+                            Pattern.compile("q$")
+                    },
             japaneseSanityChecks  = new Pattern[]
                     {
                             Pattern.compile("[AEIOUaeiou]{3}"),
@@ -289,7 +319,7 @@ public class Finnegan implements Serializable {
                                     'd', 'þ', 'ð', 'ď', 'đ',
                             },
                             new char[]{
-                                    'f', 'ſ', 'ƒ',
+                                    'f'
                             },
                             new char[]{
                                     'g', 'ĝ', 'ğ', 'ġ', 'ģ',
@@ -301,16 +331,16 @@ public class Finnegan implements Serializable {
                                     'j', 'ĵ', 'ȷ',
                             },
                             new char[]{
-                                    'k', 'ķ', 'ĸ',
+                                    'k', 'ķ',
                             },
                             new char[]{
-                                    'l', 'ℓ', 'ĺ', 'ļ', 'ľ', 'ŀ', 'ł',
+                                    'l', 'ĺ', 'ļ', 'ľ', 'ŀ', 'ł',
                             },
                             new char[]{
                                     'm',
                             },
                             new char[]{
-                                    'n', 'ñ', 'ń', 'ņ', 'ň', 'ŉ', 'ŋ',
+                                    'n', 'ñ', 'ń', 'ņ', 'ň', 'ŋ',
                             },
                             new char[]{
                                     'p',
@@ -325,7 +355,7 @@ public class Finnegan implements Serializable {
                                     's', 'ś', 'ŝ', 'ş', 'š', 'ș',
                             },
                             new char[]{
-                                    't', 'ţ', 'ť', 'ŧ', 'ț',
+                                    't', 'ţ', 'ť', 'ț',
                             },
                             new char[]{
                                     'v',
@@ -353,13 +383,15 @@ public class Finnegan implements Serializable {
      * @param str a string that may contain accented characters
      * @return a string with all accented characters replaced with their (possibly ASCII) counterparts
      */
-    public String removeAccents(String str) {
+    public String removeAccents(CharSequence str) {
         String alteredString = Normalizer.normalize(str, Normalizer.Form.NFD);
-        alteredString = diacritics.matcher(alteredString).replaceAll("");
-        alteredString = alteredString.replace('æ', 'a');
-        alteredString = alteredString.replace('œ', 'o');
-        alteredString = alteredString.replace('Æ', 'A');
-        alteredString = alteredString.replace('Œ', 'O');
+        alteredString = diacritics.matcher(alteredString).replaceAll("")
+        .replace('æ', 'a')
+        .replace('œ', 'o')
+        .replace('ø', 'o')
+        .replace('Æ', 'A')
+        .replace('Œ', 'O')
+        .replace('Ø', 'O');
         return alteredString;
     }
 
@@ -378,8 +410,8 @@ public class Finnegan implements Serializable {
             new String[]{"'", "-"}, new int[]{1, 2, 3}, new double[]{6, 7, 2}, 0.4, 0.31, 0.07, 0.04, null, true);
     /**
      * Imitation English; may seem closer to Dutch in some generated text, and is not exactly the best imitation.
-     * Should seem pretty fake to many readers; does not filter out dictionary words. If you want to
-     * avoid generating certain words, you can subclass Finnegan and modify the word() method.
+     * Should seem pretty fake to many readers; does not filter out dictionary words but does perform basic vulgarity
+     * filtering. If you want to avoid generating other words, you can subclass Finnegan and modify word() .
      * <br>
      * Mont tiste frot; mousation hauddes?
      * Lily wrely stiebes; flarrousseal gapestist.
@@ -440,23 +472,25 @@ public class Finnegan implements Serializable {
             new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3, null, true);
     /**
      * Imitation ancient Greek, using the original Greek alphabet. People may try to translate it and get gibberish.
-     * Make sure the font you use to render this supports the Greek alphabet!
+     * Make sure the font you use to render this supports the Greek alphabet! In the GDX display module, the "smooth"
+     * fonts support all the Greek you need for this.
      * <br>
      * Ψυιλασ αλορ; αιπεομαρτα λε λιασπα...
      */
     public static final Finnegan GREEK_AUTHENTIC = new Finnegan(
             new String[]{"α", "α", "α", "ο", "ο", "ο", "ε", "ε", "ι", "ι", "ι", "αυ", "αι", "αι", "οι", "οι", "ια", "ιο", "ου", "ου", "εο", "ει"},
             new String[]{"υι", "ει"},
-            new String[]{"ρ", "σ", "ζ", "τ", "τ", "κ", "χ", "ν", "θ", "κθ", "μ", "π", "ψ", "β", "λ", "κρ", "γ", "ϕθ"},
-            new String[]{"λϕ", "πλ", "λ", "λ", "κρ", "γχ", "γξ", "ψ"},
-            new String[]{"σ", "π", "τ", "χ", "ν", "μ", "σ", "π", "τ", "χ", "ν", "μ", "β", "γ", "στ", "ρστ", "ρτ", "σπ", "ρκ", "ϕ", "ξ", "ζ", "γκ", "γγ", "θ"},
-            new String[]{"ος", "ος", "ις", "υς", "υμ", "ευμ", "ιυμ", "ιαμ", "υς", "υμ", "ες", "ανες", "ερος", "ορ", "οϕον", "ον", "οτρον"},
-            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3, null, false);
+            new String[]{"ρ", "σ", "ζ", "τ", "τ", "κ", "χ", "ν", "θ", "κθ", "μ", "π", "ψ", "β", "λ", "κρ", "γ", "φθ"},
+            new String[]{"λφ", "πλ", "λ", "λ", "κρ", "γχ", "γξ", "ψ"},
+            new String[]{"σ", "π", "τ", "χ", "ν", "μ", "σ", "π", "τ", "χ", "ν", "μ", "β", "γ", "στ", "ρστ", "ρτ", "σπ", "ρκ", "φ", "ξ", "ζ", "γκ", "γγ", "θ"},
+            new String[]{"ος", "ος", "ις", "υς", "υμ", "ευμ", "ιυμ", "ιαμ", "υς", "υμ", "ες", "ανες", "ερος", "ορ", "οφον", "ον", "οτρον"},
+            new String[]{}, new int[]{1, 2, 3}, new double[]{5, 7, 4}, 0.45, 0.45, 0.0, 0.3, null, true);
 
     /**
      * Imitation modern French, using (too many of) the accented vowels that are present in the language. Translating it
-     * will produce gibberish if it produces anything at all.
-     * <br>
+     * will produce gibberish if it produces anything at all. In the GDX display module, the "smooth" and "unicode"
+     * fonts support all the accented characters you need for this.
+     * <br><br>
      * Fa veau, ja ri avé re orçe jai braï aisté.
      */
     public static final Finnegan FRENCH = new Finnegan(
@@ -469,7 +503,9 @@ public class Finnegan implements Serializable {
                     "ai", "aie", "aou", "eau", "oi", "oui", "oie", "eu", "eu",
                     "à", "â", "ai", "aî", "aï", "aie", "aou", "aoû", "au", "ay", "e", "é", "ée", "è",
                     "ê", "eau", "ei", "eî", "eu", "eû", "i", "î", "ï", "o", "ô", "oe", "oê", "oë", "œu",
-                    "oi", "oie", "oï", "ou", "oû", "oy", "u", "û", "ue"
+                    "oi", "oie", "oï", "ou", "oû", "oy", "u", "û", "ue",
+                    "a", "a", "a", "e", "e", "e", "i", "i", "o", "u", "a", "a", "a", "e", "e", "e", "i", "i", "o",
+                    "a", "a", "e", "e", "i", "o", "a", "a", "a", "e", "e", "e", "i", "i", "o",
             },
             new String[]{"tr", "ch", "m", "b", "b", "br", "j", "j", "j", "j", "g", "t", "t", "t", "c", "d", "f", "f", "h", "n", "l", "l",
                     "s", "s", "s", "r", "r", "r", "v", "v", "p", "pl", "pr", "bl", "br", "dr", "gl", "gr"},
@@ -513,6 +549,7 @@ public class Finnegan implements Serializable {
     /**
      * Imitation modern Russian, using the authentic Cyrillic alphabet used in Russia and other countries.
      * Make sure the font you use to render this supports the Cyrillic alphabet!
+     * In the GDX display module, the "smooth" fonts support all the Cyrillic alphabet you need for this.
      * <br>
      * Жыдотуф руц пйцас, гогутяр шыскучэбаб - гйчапофёглор гюнуз ъсказюжин.
      */
@@ -528,10 +565,15 @@ public class Finnegan implements Serializable {
             new String[]{"б", "в", "г", "д", "ж", "з", "к", "л", "м", "н", "п", "р", "с", "т", "ф", "х", "ц", "ч", "ш",
                     "в", "ф", "ск", "ск", "ск", "с", "б", "д", "д", "н", "р", "р"},
             new String[]{"одка", "одна", "уск", "аск", "ускы", "ад", "ар", "овйч", "ев", "ов", "оф", "агда", "ёцкы", "йч", "он", "ах", "ъв", "ян"},
-            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12, null, false);
+            new String[]{}, new int[]{1, 2, 3, 4, 5, 6}, new double[]{4, 5, 6, 5, 3, 1}, 0.1, 0.2, 0.0, 0.12, null, true);
 
     /**
-     * Imitation Japanese, romanized to use the Latin alphabet. Likely to seem pretty fake to many readers.
+     * Imitation Japanese, romanized to use the Latin alphabet. Likely to seem pretty fake to many readers.  Excellent
+     * when mixed, but keep in mind the sanity checks that are used to make this generate viable words in Japanese also
+     * can carry over to a mixed language if JAPANESE_ROMANIZED is mixed with a Finnegan that does not have sanity
+     * checks, like any non-Latin-script ones. If this is the parameter to mix() called on a Finnegan like FRENCH or
+     * RUSSIAN_ROMANIZED (but not RUSSIAN_AUTHENTIC), the sanity check carryover probably won't happen, and the word
+     * structure won't have the mostly-syllable-based aesthetic that JAPANESE_ROMANIZED generates.
      * <br>
      * Narurehyounan nikase keho...
      */
@@ -540,20 +582,574 @@ public class Finnegan implements Serializable {
             new String[]{},
             new String[]{"k", "ky", "s", "sh", "t", "ts", "ch", "n", "ny", "h", "f", "hy", "m", "my", "y", "r", "ry", "g",
                     "gy", "z", "j", "d", "b", "by", "p", "py",
-                    "k", "t", "n", "s", "k", "t", "n", "s", "sh", "sh", "g", "r", "b",
-                    "k", "t", "n", "s", "k", "t", "n", "s", "sh", "sh", "g", "r", "b",
-                    "k", "t", "n", "s", "k", "t", "n", "s", "sh", "sh", "ch", "ry", "ts"
+                    "k", "t", "n", "s", "k", "t", "d", "s", "sh", "sh", "g", "r", "b",
+                    "k", "t", "n", "s", "k", "t", "b", "s", "sh", "sh", "g", "r", "b",
+                    "k", "t", "n", "s", "k", "t", "z", "s", "sh", "sh", "ch", "ry", "ts"
             },
             new String[]{"k", "ky", "s", "sh", "t", "ts", "ch", "n", "ny", "h", "f", "hy", "m", "my", "y", "r", "ry", "g",
                     "gy", "z", "j", "d", "b", "by", "p", "py",
-                    "k", "t", "n", "s", "k", "t", "n", "s", "sh", "sh", "y", "j", "p", "r", "d",
-                    "k", "t", "n", "s", "k", "t", "n", "s", "sh", "sh", "y", "j", "p", "r", "d",
-                    "k", "t", "n", "s", "f", "g", "z", "b", "d", "ts",
-                    "nn", "nn", "nn", "nd", "nz", "", "mm", "kk", "kk", "tt", "ss", "ssh", "tch"},
+                    "k", "t", "d", "s", "k", "t", "d", "s", "sh", "sh", "y", "j", "p", "r", "d",
+                    "k", "t", "b", "s", "k", "t", "b", "s", "sh", "sh", "y", "j", "p", "r", "d",
+                    "k", "t", "z", "s", "f", "g", "z", "b", "d", "ts",
+                    "nn", "nn", "nn", "nd", "nz", "mm", "kk", "kk", "tt", "ss", "ssh", "tch"},
             new String[]{"n"},
             new String[]{},
             new String[]{}, new int[]{1, 2, 3, 4, 5}, new double[]{5, 4, 5, 4, 3}, 0.3, 0.9, 0.0, 0.0, japaneseSanityChecks, true);
 
+    /**
+     * Swahili is one of the more commonly-spoken languages in sub-Saharan Africa, and serves mainly as a shared language
+     * that is often learned after becoming fluent in one of many other (vaguely-similar) languages of the area. An
+     * example sentence in Swahili, that this might try to imitate aesthetically, is "Mtoto mdogo amekisoma," meaning
+     * "The small child reads it" (where it is a book). A notable language feature used here is the redoubling of words,
+     * which is used in Swahili to emphasize or alter the meaning of the doubled word; here, it always repeats exactly
+     * and can't make minor changes like a real language might. This generates things like "gata-gata", "hapi-hapi", and
+     * "mimamzu-mimamzu", always separating with a hyphen here.
+     * <br>
+     * As an aside, please try to avoid the ugly stereotypes that fantasy media often assigns to speakers of African-like
+     * languages when using this or any of the generators. Many fantasy tropes come from older literature written with
+     * major cultural biases, and real-world cultural elements can be much more interesting to players than yet another
+     * depiction of a "jungle savage" with stereotypical traits. Consider drawing from existing lists of real-world
+     * technological discoveries, like https://en.wikipedia.org/wiki/History_of_science_and_technology_in_Africa , for
+     * inspiration when world-building; though some groups may not have developed agriculture by early medieval times,
+     * their neighbors may be working iron and studying astronomy just a short distance away.
+     * <br>
+     * Kondueyu; ma mpiyamdabota mise-mise nizakwaja alamsa amja, homa nkajupomba.
+     */
+    public static final Finnegan SWAHILI = new Finnegan(
+            new String[]{"a", "i", "o", "e", "u",
+                    "a", "a", "i", "o", "o", "e", "u",
+                    "a", "a", "i", "o", "o", "u",
+                    "a", "a", "i", "i", "o",
+                    "a","a","a","a","a",
+                    "a", "i", "o", "e", "u",
+                    "a", "a", "i", "o", "o", "e", "u",
+                    "a", "a", "i", "o", "o", "u",
+                    "a", "a", "i", "i", "o",
+                    "a","a","a","a","a",
+                    "aa", "aa", "ue", "uo", "ii", "ea"},
+            new String[]{},
+            new String[]{
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "nb", "nj", "ns", "nz",
+                    "nb", "nch", "nj", "ns", "ny", "nz",
+                    "nb", "nch", "nf", "ng", "nj", "nk", "np", "ns", "nz",
+                    "nb", "nch", "nd", "nf", "ng", "nj", "nk", "np", "ns", "nt", "nz",
+                    "nb", "nch", "nd", "nf", "ng", "nj", "nk", "np", "ns", "nt", "nv", "nw", "nz",
+
+                    "mb", "ms", "my", "mz",
+                    "mb", "mch","ms", "my", "mz",
+                    "mb", "mch", "mk", "mp", "ms", "my", "mz",
+                    "mb", "mch", "md", "mk", "mp", "ms", "mt", "my", "mz",
+                    "mb", "mch", "md", "mf", "mg", "mj", "mk", "mp", "ms", "mt", "mv", "mw", "my", "mz",
+                    "sh", "sh", "sh", "ny", "kw",
+                    "dh", "th", "sh", "ny",
+                    "dh", "th", "sh", "gh", "r", "ny",
+                    "dh", "th", "sh", "gh", "r", "ny",
+            },
+            new String[]{
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "b", "h", "j", "l", "s", "y", "m", "n",
+                    "b", "ch", "h", "j", "l", "s", "y", "z", "m", "n",
+                    "b", "ch", "f", "g", "h", "j", "k", "l", "p", "s", "y", "z", "m", "n",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "y", "z", "m", "n", "kw",
+                    "b", "ch", "d", "f", "g", "h", "j", "k", "l", "p", "s", "t", "v", "w", "y", "z", "m", "n", "kw",
+
+                    "nb", "nj", "ns", "nz",
+                    "nb", "nch", "nj", "ns", "ny", "nz",
+                    "nb", "nch", "nf", "ng", "nj", "nk", "np", "ns", "nz",
+                    "nb", "nch", "nd", "nf", "ng", "nj", "nk", "np", "ns", "nt", "nz",
+                    "nb", "nch", "nd", "nf", "ng", "nj", "nk", "np", "ns", "nt", "nw", "nz",
+
+                    "mb", "ms", "my", "mz",
+                    "mb", "mch","ms", "my", "mz",
+                    "mb", "mch", "mk", "mp", "ms", "my", "mz",
+                    "mb", "mch", "md", "mk", "mp", "ms", "mt", "my", "mz",
+                    "mb", "mch", "md", "mf", "mg", "mj", "mk", "mp", "ms", "mt", "mw", "my", "mz",
+                    "sh", "sh", "sh", "ny", "kw",
+                    "dh", "th", "sh", "ny",
+                    "dh", "th", "sh", "gh", "r", "ny",
+                    "dh", "th", "sh", "gh", "r", "ny",
+                    "ng", "ng", "ng", "ng", "ng"
+            },
+            new String[]{""},
+            new String[]{"a-@2a", "a-@2a", "a-@3a","a-@2a", "a-@2a", "a-@3a","i-@2i", "i-@2i", "i-@3i",
+                    "e-@2e", "e-@2e", "e-@3e", "u-@2u", "u-@2u", "u-@3u",
+            },
+            new String[]{}, new int[]{1, 2, 3, 4, 5}, new double[]{1, 7, 6, 4, 2}, 0.2, 1.0, 0.0, 0.25, null, true);
+
+    /**
+     * Imitation Somali, using the Latin alphabet. Due to uncommon word structure, unusual allowed combinations of
+     * letters, and no common word roots with most familiar languages, this may seem like an unidentifiable or "alien"
+     * language to most readers. However, it's based on the Latin writing system for the Somali language (probably
+     * closest to the northern dialect), which due to the previously mentioned properties, makes it especially good for
+     * mixing with other languages to make letter combinations that seem strange to appear. It is unlikely that this
+     * particular generated language style will be familiar to readers, so it probably won't have existing stereotypes
+     * associated with the text. One early comment this received was, "it looks like a bunch of letters semi-randomly
+     * thrown together", which is probably a typical response (the comment was made by someone fluent in German and
+     * English, and most Western European languages are about as far as you can get from Somali).
+     * <br>
+     * Libor cat naqoxekh dhuugad gisiqir?
+     */
+    public static final Finnegan SOMALI = new Finnegan(
+            new String[]{"a", "a", "a", "a", "a", "a", "a", "aa", "aa", "aa",
+                    "e", "e", "ee",
+                    "i", "i", "i", "i", "ii",
+                    "o", "o", "o", "oo",
+                    "u", "u", "u", "uu", "uu",
+            },
+            new String[]{},
+            new String[]{"b", "t", "j", "x", "kh", "d", "r", "s", "sh", "dh", "c", "g", "f", "q", "k", "l", "m",
+                    "n", "w", "h", "y",
+                    "x", "g", "b", "d", "s", "m", "dh", "n", "r",
+                    "g", "b", "s", "dh",
+            },
+            new String[]{
+                    "bb", "gg", "dd", "bb", "dd", "rr", "ddh", "cc", "gg", "ff", "ll", "mm", "nn",
+                    "bb", "gg", "dd", "bb", "dd", "gg",
+                    "bb", "gg", "dd", "bb", "dd", "gg",
+                    "cy", "fk", "ft", "nt", "rt", "lt", "qm", "rdh", "rsh", "lq",
+                    "my", "gy", "by", "lkh", "rx", "md", "bd", "dg", "fd", "mf",
+                    "dh", "dh", "dh", "dh",
+            },
+            new String[]{
+                    "b", "t", "j", "x", "kh", "d", "r", "s", "sh", "c", "g", "f", "q", "k", "l", "m", "n", "h",
+                    "x", "g", "b", "d", "s", "m", "q", "n", "r",
+                    "b", "t", "j", "x", "kh", "d", "r", "s", "sh", "c", "g", "f", "q", "k", "l", "m", "n", "h",
+                    "x", "g", "b", "d", "s", "m", "q", "n", "r",
+                    "b", "t", "j", "x", "kh", "d", "r", "s", "sh", "c", "g", "f", "q", "k", "l", "m", "n",
+                    "g", "b", "d", "s", "q", "n", "r",
+                    "b", "t", "x", "kh", "d", "r", "s", "sh", "g", "f", "q", "k", "l", "m", "n",
+                    "g", "b", "d", "s", "r", "n",
+                    "b", "t", "kh", "d", "r", "s", "sh", "g", "f", "q", "k", "l", "m", "n",
+                    "g", "b", "d", "s", "r", "n",
+                    "b", "t", "d", "r", "s", "sh", "g", "f", "q", "k", "l", "m", "n",
+                    "g", "b", "d", "s", "r", "n",
+            },
+            new String[]{"aw", "ow", "ay", "ey", "oy", "ay", "ay"},
+            new String[]{}, new int[]{1, 2, 3, 4, 5}, new double[]{5, 4, 5, 4, 1}, 0.25, 0.3, 0.0, 0.08, null, true);
+    /**
+     * Imitation Hindi, romanized to use the Latin alphabet using accented glyphs similar to the IAST standard.
+     * You can get this to produce actual IAST glyphs by calling removeModifiers() on this, but most fonts do not
+     * support the glyphs that needs. If the modifier that does this is not removed, then the IAST standard glyphs
+     * {@code "ṛṝḷḹḍṭṅṇṣṃḥ"} become {@code "ŗŕļĺđţńņşĕĭ"}, with the nth glyph in the first string being substituted
+     * with the nth glyph in the second string.
+     * <br>
+     * Darvāga yar; ghađhinopŕauka āĕrdur, conśaigaijo śabhodhaĕđū jiviđaudu.
+     */
+    public static final Finnegan HINDI_ROMANIZED = new Finnegan(
+            new String[]{
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "u", "ū", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "u", "ū", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "u", "ū", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "a", "a", "a", "a", "a", "a", "ā", "ā", "i", "i", "i", "i", "ī", "i", "i", "ī", "ī",
+                    "u", "u", "u", "ū", "u", "ū", "u", "ū", "e", "ai", "ai", "o", "o", "o", "au",
+                    "aṃ", "aṃ", "aṃ", "aṃ", "aṃ", "āṃ", "āṃ", "iṃ", "iṃ", "iṃ", "īṃ", "īṃ",
+                    "uṃ", "uṃ", "ūṃ", "aiṃ", "aiṃ", "oṃ", "oṃ", "oṃ", "auṃ",
+                    //"aḥ", "aḥ", "aḥ", "aḥ", "aḥ", "āḥ", "āḥ", "iḥ", "iḥ", "iḥ", "īḥ", "īḥ",
+                    //"uḥ", "uḥ", "ūḥ", "aiḥ", "aiḥ", "oḥ", "oḥ", "oḥ", "auḥ",
+            },
+            new String[]{"a'","i'","u'", "o'", "a'","i'","u'", "o'",
+            },
+            new String[]{
+                    "k", "k", "k", "k", "k", "k", "k", "k", "kṛ", "kṝ", "kḷ",
+                    "c", "c", "c", "c", "c", "c", "cṛ", "cṝ", "cḷ",
+                    "ṭ", "t", "t", "t", "t", "t", "t", "t", "t", "t", "tṛ", "tṝ", "tṛ", "tṝ",
+                    "p", "p", "p", "p", "p", "p", "p", "p", "p", "p", "pṛ", "pṝ", "pḷ", "pḹ", "pṛ", "pṝ", "p", "p",
+                    "kh", "kh", "kh", "kh", "kh", "kh", "kh", "kh", "kh", "kh", "khṛ", "khṝ", "khḷ", "khḹ",
+                    "ch", "ch", "ch", "ch", "ch", "ch", "ch", "ch", "ch", "chṛ", "chṝ", "chḷ", "chḹ",
+                    "ṭh", "th", "th", "th", "th", "th", "th", "th", "th", "th", "thṛ", "thṝ", "thḷ", "thḹ",
+                    "ph", "ph", "ph", "ph", "ph", "ph", "ph", "phṛ", "phṝ", "phḷ", "phḹ",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "jh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "ḍh", "dh", "bh",
+                    "ṅ", "ñ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ś", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "ḍh", "dh", "bh",
+                    "ṅ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ṣ", "s",
+                    "g", "j", "ḍ", "d", "b", "gh", "ḍh", "dh", "bh",
+                    "ṅ", "ṇ", "n", "m", "h", "y", "r", "l", "v", "ṣ", "s",
+                    "g", "ḍ", "d", "b", "gh", "ḍh", "dh", "bh", "n", "m", "v", "s",
+                    "g", "ḍ", "d", "b", "g", "d", "b", "dh", "bh", "n", "m", "v",
+                    "g", "ḍ", "d", "b", "g", "d", "b", "dh", "bh", "n", "m", "v",
+            },
+            new String[]{
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "k", "k", "k", "k", "k", "nk", "rk",
+                    "kṛ", "kṛ", "kṛ", "kṛ", "kṛ", "nkṛ", "rkṛ",
+                    "kṝ", "kṝ", "kṝ", "kṝ", "kṝ", "nkṝ", "rkṝ",
+                    "kḷ", "kḷ", "kḷ", "kḷ", "kḷ", "nkḷ", "rkḷ",
+
+                    "c", "c", "c", "c", "c", "c", "cṛ", "cṝ", "cḷ",
+                    "ṭ", "t", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "ṭ", "t", "t", "t", "t", "nt", "rt",
+                    "tṛ", "tṛ", "tṛ", "tṛ", "tṛ", "ntṛ", "rtṛ",
+                    "tṝ", "tṝ", "tṝ", "tṝ", "tṝ", "ntṝ", "rtṝ",
+                    "tṛ", "tṛ", "tṛ", "tṛ", "tṛ", "ntṛ", "rtṛ",
+                    "tṝ", "tṝ", "tṝ", "tṝ", "tṝ", "ntṝ", "rtṝ",
+
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "pṛ", "pṛ", "pṛ", "pṛ", "pṛ", "npṛ", "rpṛ",
+                    "pṝ", "pṝ", "pṝ", "pṝ", "pṝ", "npṝ", "rpṝ",
+                    "pḷ", "pḷ", "pḷ", "pḷ", "pḷ", "npḷ", "rpḷ",
+                    "pḹ", "pḹ", "pḹ", "pḹ", "pḹ", "npḹ", "rpḹ",
+                    "pṛ", "pṛ", "pṛ", "pṛ", "pṛ", "npṛ", "rpṛ",
+                    "pṝ", "pṝ", "pṝ", "pṝ", "pṝ", "npṝ", "rpṝ",
+                    "p", "p", "p", "p", "p", "np", "rp",
+                    "p", "p", "p", "p", "p", "np", "rp",
+
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "kh", "kh", "kh", "kh", "kh", "nkh", "rkh",
+                    "khṛ", "khṛ", "khṛ", "khṛ", "khṛ", "nkhṛ", "rkhṛ",
+                    "khṝ", "khṝ", "khṝ", "khṝ", "khṝ", "nkhṝ", "rkhṝ",
+                    "khḷ", "khḷ", "khḷ", "khḷ", "khḷ", "nkhḷ", "rkhḷ",
+                    "khḹ", "khḹ", "khḹ", "khḹ", "khḹ", "nkhḹ", "rkhḹ",
+
+                    "ch", "ch", "ch", "ch", "ch", "ch", "ch", "ch", "ch", "chṛ", "chṝ", "chḷ", "chḹ",
+                    "ṭh", "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "th", "th", "th", "th", "th", "nth", "rth",
+                    "thṛ", "thṛ", "thṛ", "thṛ", "thṛ", "nthṛ", "rthṛ",
+                    "thṝ", "thṝ", "thṝ", "thṝ", "thṝ", "nthṝ", "rthṝ",
+                    "thḷ", "thḷ", "thḷ", "thḷ", "thḷ", "nthḷ", "rthḷ",
+                    "thḹ", "thḹ", "thḹ", "thḹ", "thḹ", "nthḹ", "rthḹ",
+
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "ph", "ph", "ph", "ph", "ph", "nph", "rph",
+                    "phṛ", "phṛ", "phṛ", "phṛ", "phṛ", "nphṛ", "rphṛ",
+                    "phṝ", "phṝ", "phṝ", "phṝ", "phṝ", "nphṝ", "rphṝ",
+                    "phḷ", "phḷ", "phḷ", "phḷ", "phḷ", "nphḷ", "rphḷ",
+                    "phḹ", "phḹ", "phḹ", "phḹ", "phḹ", "nphḹ", "rphḹ",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "jh", "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ñ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ś", "ś", "ś", "ś", "ś", "nś", "rś",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "j", "j", "j", "j", "j", "nj", "rj",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+
+                    "ṅ", "ṇ", "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "h", "y", "y", "y", "y", "y", "ny", "ry",
+                    "r", "l", "v", "v", "v", "v", "v", "nv", "rv",
+                    "ṣ", "ṣ", "ṣ", "ṣ", "ṣ", "nṣ", "rṣ",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "gh", "gh", "gh", "gh", "gh", "ngh", "rgh",
+                    "ḍh", "ḍh", "ḍh", "ḍh", "ḍh", "nḍh", "rḍh",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+                    "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "v", "v", "v", "v", "v", "nv", "rv",
+                    "s", "s", "s", "s", "s", "ns", "rs",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+                    "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "v", "v", "v", "v", "v", "nv", "rv",
+
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "ḍ", "ḍ", "ḍ", "ḍ", "ḍ", "nḍ", "rḍ",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "g", "g", "g", "g", "g", "ng", "rg",
+                    "d", "d", "d", "d", "d", "nd", "rd",
+                    "b", "b", "b", "b", "b", "nb", "rb",
+                    "dh", "dh", "dh", "dh", "dh", "ndh", "rdh",
+                    "bh", "bh", "bh", "bh", "bh", "nbh", "rbh",
+                    "n", "m", "m", "m", "m", "m", "nm", "rm",
+                    "v", "v", "v", "v", "v", "nv", "rv",
+            },
+            new String[]{"t", "d", "m", "r", "dh", "b", "t", "d", "m", "r", "dh", "bh", "nt", "nt", "nk", "ṣ"},
+            new String[]{"it", "it", "ati", "adva", "aṣ", "arma", "ardha", "abi", "ab", "aya"},
+            new String[]{}, new int[]{1, 2, 3, 4, 5}, new double[]{1, 2, 3, 3, 1}, 0.15, 0.75, 0.0, 0.12, null, true)
+            .addModifiers(Modifier.replacementTable("ṛṝḷḹḍṭṅṇṣṃḥ", "ŗŕļĺđţńņşĕĭ"));
+
+    /**
+     * A mix of four different languages, using only ASCII characters, that is meant for generating single words for
+     * creature or place names in fantasy settings.
+     * <br>
+     * Adeni, Sainane, Caneros, Sune, Alade, Tidifi, Muni, Gito, Lixoi, Bovi...
+     */
+    public static final Finnegan FANTASY_NAME = GREEK_ROMANIZED.mix(
+            RUSSIAN_ROMANIZED.mix(
+                    FRENCH.removeAccents().mix(
+                            JAPANESE_ROMANIZED, 0.5), 0.85), 0.925);
+    /**
+     * A mix of four different languages with some accented characters added onto an ASCII base, that can be good for
+     * generating single words for creature or place names in fantasy settings that should have a "fancy" feeling from
+     * having unnecessary accents added primarily for visual reasons.
+     * <br>
+     * Askieno, Blarcīnũn, Mēmida, Zizhounkô, Blęrinaf, Zemĭ, Mónazôr, Renerstă, Uskus, Toufounôr...
+     */
+    public static final Finnegan FANCY_FANTASY_NAME = FANTASY_NAME.addAccents(0.47, 0.07);
 
     /**
      * Zero-arg constructor for a Finnegan; produces a Finnegan equivalent to Finnegan.ENGLISH .
@@ -688,9 +1284,9 @@ public class Finnegan implements Serializable {
                     int[] syllableLengths, double[] syllableFrequencies, double vowelStartFrequency,
                     double vowelEndFrequency, double vowelSplitFrequency, double syllableEndFrequency,
                     Pattern[] sane, boolean clean) {
-        rng = new RNG(megaHash(openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants,
-                closingSyllables, vowelSplitters) ^ Arrays.hashCode(syllableLengths)
-                ^ (Arrays.hashCode(syllableFrequencies) << 31) ^
+        rng = new RNG(hash64(openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants,
+                closingSyllables, vowelSplitters) ^ hash64(syllableLengths)
+                ^ (hash64(syllableFrequencies) << 31) ^
                 Double.doubleToLongBits(vowelStartFrequency + 19.0 * (vowelEndFrequency + 19.0 * (vowelSplitFrequency
                         + 19.0 * syllableEndFrequency))));
         this.openingVowels = openingVowels;
@@ -734,21 +1330,41 @@ public class Finnegan implements Serializable {
             this.syllableEndFrequency = syllableEndFrequency;
         this.clean = clean;
         this.sanityChecks = sane;
+        modifiers = new ArrayList<Modifier>(16);
     }
-    protected long megaHash(String[]... arrays)
-    {
-        long hsh = 0x123456789ABCDEF0L;
-        long offset = 21;
-        for (int i = 0; i < arrays.length; i++) {
-            hsh ^= arrays[i].length * (i + 159);
-            for (int j = 0; j < arrays[i].length && j < 16; j++, offset = (offset + 1) % 32) {
-                hsh ^= arrays[i][j].hashCode() << offset;
-            }
+    private Finnegan(String[] openingVowels, String[] midVowels, String[] openingConsonants,
+                            String[] midConsonants, String[] closingConsonants, String[] closingSyllables,
+                            String[] vowelSplitters, LinkedHashMap<Integer, Double> syllableFrequencies,
+                            double vowelStartFrequency, double vowelEndFrequency, double vowelSplitFrequency,
+                            double syllableEndFrequency, Pattern[] sanityChecks, boolean clean, RNG rng,
+                            Collection<Modifier> modifiers) {
+        this.openingVowels = copyStrings(openingVowels);
+        this.midVowels = copyStrings(midVowels);
+        this.openingConsonants = copyStrings(openingConsonants);
+        this.midConsonants = copyStrings(midConsonants);
+        this.closingConsonants = copyStrings(closingConsonants);
+        this.closingSyllables = copyStrings(closingSyllables);
+        this.vowelSplitters = copyStrings(vowelSplitters);
+        this.syllableFrequencies = new LinkedHashMap<Integer, Double>(syllableFrequencies);
+        this.vowelStartFrequency = vowelStartFrequency;
+        this.vowelEndFrequency = vowelEndFrequency;
+        this.vowelSplitFrequency = vowelSplitFrequency;
+        this.syllableEndFrequency = syllableEndFrequency;
+        for (Double freq : this.syllableFrequencies.values()) {
+            totalSyllableFrequency += freq;
         }
-        return hsh;
+        if (sanityChecks == null)
+            this.sanityChecks = null;
+        else {
+            this.sanityChecks = new Pattern[sanityChecks.length];
+            System.arraycopy(sanityChecks, 0, this.sanityChecks, 0, sanityChecks.length);
+        }
+        this.clean = clean;
+        this.rng = new RNG(rng.state);
+        this.modifiers = new ArrayList<Modifier>(modifiers);
     }
 
-    protected boolean checkAll(String testing, Pattern[] checks)
+    protected boolean checkAll(CharSequence testing, Pattern[] checks)
     {
         String fixed = removeAccents(testing);
         for (int i = 0; i < checks.length; i++) {
@@ -757,6 +1373,7 @@ public class Finnegan implements Serializable {
         }
         return true;
     }
+
     /**
      * Generate a word from this Finnegan, using and changing the current seed.
      * @param capitalize true if the word should start with a capital letter, false otherwise
@@ -775,18 +1392,10 @@ public class Finnegan implements Serializable {
      */
     public String word(long seed, boolean capitalize) {
         rng.state = seed;
-        String finished = "thaw"; // the last word in stolentelling
         while(true) {
-            StringBuilder sb = new StringBuilder(20);
-            if (rng.nextDouble() < vowelStartFrequency) {
-                sb.append(rng.getRandomElement(openingVowels));
-                sb.append(rng.getRandomElement(midConsonants));
-            } else {
-                sb.append(rng.getRandomElement(openingConsonants));
-            }
-
+            StringBuffer sb = new StringBuffer(20);
             double syllableChance = rng.nextDouble(totalSyllableFrequency);
-            int syllables = 1;
+            int syllables = 1, i = 0;
             for (Map.Entry<Integer, Double> kv : syllableFrequencies.entrySet()) {
                 if (syllableChance < kv.getValue()) {
                     syllables = kv.getKey();
@@ -794,7 +1403,15 @@ public class Finnegan implements Serializable {
                 } else
                     syllableChance -= kv.getValue();
             }
-            for (int i = 0; i < syllables - 1; i++) {
+            if (rng.nextDouble() < vowelStartFrequency) {
+                sb.append(rng.getRandomElement(openingVowels));
+                sb.append(rng.getRandomElement(midConsonants));
+                i++;
+            } else {
+                sb.append(rng.getRandomElement(openingConsonants));
+            }
+
+            for (; i < syllables - 1; i++) {
                 sb.append(rng.getRandomElement(midVowels));
                 if (rng.nextDouble() < vowelSplitFrequency) {
                     sb.append(rng.getRandomElement(vowelSplitters));
@@ -803,7 +1420,22 @@ public class Finnegan implements Serializable {
                 sb.append(rng.getRandomElement(midConsonants));
             }
             if (rng.nextDouble() < syllableEndFrequency) {
-                sb.append(rng.getRandomElement(closingSyllables));
+                String close = rng.getRandomElement(closingSyllables);
+                if((close.contains("@1") && syllables == 1) ||
+                        (close.contains("@2") && syllables == 2) ||
+                        (close.contains("@3") && syllables == 3) )
+                {
+                    sb.append(close.replaceAll("@\\d", sb.toString()));
+                }
+                else if(!close.contains("@"))
+                    sb.append(close);
+                else if (rng.nextDouble() < vowelEndFrequency) {
+                    sb.append(rng.getRandomElement(midVowels));
+                    if (rng.nextDouble() < vowelSplitFrequency) {
+                        sb.append(rng.getRandomElement(vowelSplitters));
+                        sb.append(rng.getRandomElement(midVowels));
+                    }
+                }
             } else {
                 sb.append(rng.getRandomElement(midVowels));
                 if (rng.nextDouble() < vowelSplitFrequency) {
@@ -813,20 +1445,135 @@ public class Finnegan implements Serializable {
                 if (rng.nextDouble() >= vowelEndFrequency) {
                     sb.append(rng.getRandomElement(closingConsonants));
                     if (rng.nextDouble() < syllableEndFrequency) {
-                        sb.append(rng.getRandomElement(closingSyllables));
+                        String close = rng.getRandomElement(closingSyllables);
+                        if((close.contains("@1") && syllables == 1) ||
+                                (close.contains("@2") && syllables == 2) ||
+                                (close.contains("@3") && syllables == 3) )
+                        {
+                            sb.append(close.replaceAll("@\\d", sb.toString()));
+                        }
+                        else if(!close.contains("@"))
+                            sb.append(close);
                     }
                 }
             }
+            if(sanityChecks != null && !checkAll(sb, sanityChecks))
+                continue;
+
+            for(Modifier mod : modifiers)
+            {
+                sb = mod.modify(rng, sb);
+            }
+
             if (capitalize)
                 sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
-            finished = sb.toString();
-            if(sanityChecks != null && !checkAll(finished, sanityChecks))
+
+            if(clean && !checkAll(sb, vulgarChecks))
                 continue;
-            else if(clean && !checkAll(finished, vulgarChecks))
-                continue;
-            break;
+            return sb.toString();
         }
-        return finished;
+    }
+
+    /**
+     * Generate a word from this Finnegan using the specified RNG, with usually the specified syllable count
+     *
+     * @param capitalize true if the word should start with a capital letter, false otherwise
+     * @param approxSyllables the number of syllables to try to generate
+     * @return a word in the fake language as a String
+     */
+    public String word(boolean capitalize, int approxSyllables) {
+        return word(rng.state, capitalize, approxSyllables);
+    }
+
+    /**
+     * Generate a word from this Finnegan using the specified RNG, with usually the specified syllable count
+     *
+     * @param seed        the RNG seed to use for the randomized string building
+     * @param capitalize true if the word should start with a capital letter, false otherwise
+     * @param approxSyllables the number of syllables to try to generate
+     * @return a word in the fake language as a String
+     */
+    public String word(long seed, boolean capitalize, int approxSyllables) {
+        rng.setState(seed);
+        if(approxSyllables <= 0)
+        {
+            String finished = rng.getRandomElement(openingVowels);
+            if(capitalize) return finished.substring(0, 1).toUpperCase();
+            else return finished.substring(0, 1);
+        }
+        while(true) {
+            StringBuffer sb = new StringBuffer(20);
+            int i = 0;
+            if (rng.nextDouble() < vowelStartFrequency) {
+                sb.append(rng.getRandomElement(openingVowels));
+                sb.append(rng.getRandomElement(midConsonants));
+                i++;
+            } else {
+                sb.append(rng.getRandomElement(openingConsonants));
+            }
+
+            for (; i < approxSyllables - 1; i++) {
+                sb.append(rng.getRandomElement(midVowels));
+                if (rng.nextDouble() < vowelSplitFrequency) {
+                    sb.append(rng.getRandomElement(vowelSplitters));
+                    sb.append(rng.getRandomElement(midVowels));
+                }
+                sb.append(rng.getRandomElement(midConsonants));
+            }
+            if (rng.nextDouble() < syllableEndFrequency) {
+                String close = rng.getRandomElement(closingSyllables);
+                if((close.contains("@1") && approxSyllables == 1) || (close.contains("@2") && approxSyllables == 2) ||
+                        (close.contains("@3") && approxSyllables == 3) )
+                {
+                    sb.append(close.replaceAll("@\\d", sb.toString()));
+                }
+                else if(!close.contains("@"))
+                    sb.append(close);
+                else if (rng.nextDouble() < vowelEndFrequency) {
+                    sb.append(rng.getRandomElement(midVowels));
+                    if (rng.nextDouble() < vowelSplitFrequency) {
+                        sb.append(rng.getRandomElement(vowelSplitters));
+                        sb.append(rng.getRandomElement(midVowels));
+                    }
+                }
+            } else {
+                sb.append(rng.getRandomElement(midVowels));
+                if (rng.nextDouble() < vowelSplitFrequency) {
+                    sb.append(rng.getRandomElement(vowelSplitters));
+                    sb.append(rng.getRandomElement(midVowels));
+                }
+                if (rng.nextDouble() >= vowelEndFrequency) {
+                    sb.append(rng.getRandomElement(closingConsonants));
+                    if (rng.nextDouble() < syllableEndFrequency) {
+                        String close = rng.getRandomElement(closingSyllables);
+                        if((close.contains("@1") && approxSyllables == 1) ||
+                                (close.contains("@2") && approxSyllables == 2) ||
+                                (close.contains("@3") && approxSyllables == 3) )
+                        {
+                            close = close.replaceAll("@\\d", sb.toString());
+                            sb.append(close);
+                        }
+                        else if(!close.contains("@"))
+                            sb.append(close);
+                    }
+                }
+            }
+
+            if(sanityChecks != null && !checkAll(sb, sanityChecks))
+                continue;
+
+            for(Modifier mod : modifiers)
+            {
+                sb = mod.modify(rng, sb);
+            }
+
+            if (capitalize)
+                sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
+
+            if(clean && !checkAll(sb, vulgarChecks))
+                continue;
+            return sb.toString();
+        }
     }
 
     /**
@@ -1205,20 +1952,18 @@ public class Finnegan implements Serializable {
             else
                 freqs.put(kv.getKey(), kv.getValue());
         }
-        int[] lens = new int[freqs.size()];
-        double[] odds = new double[freqs.size()];
-        int i = 0;
-        for (Map.Entry<Integer, Double> kv : freqs.entrySet()) {
-            lens[i] = kv.getKey();
-            odds[i++] = kv.getValue();
-        }
-        Finnegan finished = new Finnegan(ov, mv, oc, mc, cc, cs, splitters, lens, odds,
+
+        List<Modifier> mods = new ArrayList<Modifier>((int)(Math.ceil(modifiers.size() * myInfluence) +
+                Math.ceil(other.modifiers.size() * otherInfluence)));
+        mods.addAll(rng.randomPortion(modifiers, (int)Math.ceil(modifiers.size() * myInfluence)));
+        mods.addAll(rng.randomPortion(other.modifiers, (int)Math.ceil(other.modifiers.size() * otherInfluence)));
+
+        Finnegan finished = new Finnegan(ov, mv, oc, mc, cc, cs, splitters, freqs,
                 vowelStartFrequency * myInfluence + other.vowelStartFrequency * otherInfluence,
                 vowelEndFrequency * myInfluence + other.vowelEndFrequency * otherInfluence,
                 vowelSplitFrequency * myInfluence + other.vowelSplitFrequency * otherInfluence,
                 syllableEndFrequency * myInfluence + other.syllableEndFrequency * otherInfluence,
-                (sanityChecks == null) ? other.sanityChecks : sanityChecks, true);
-        finished.rng.state = rng.state;
+                (sanityChecks == null) ? other.sanityChecks : sanityChecks, true, new RNG(rng.state), mods);
         rng.state = oldState;
         return finished;
     }
@@ -1250,6 +1995,13 @@ public class Finnegan implements Serializable {
         finished.rng.state = rng.state;
         rng.state = oldState;
         return finished;
+    }
+
+    static String[] copyStrings(String[] start)
+    {
+        String[] next = new String[start.length];
+        System.arraycopy(start, 0, next, 0, start.length);
+        return next;
     }
     public Finnegan removeAccents() {
 
@@ -1293,6 +2045,53 @@ public class Finnegan implements Serializable {
         return finished;
     }
 
+    /**
+     * Adds the specified Modifier objects from a Collection to a copy of this Finnegan and returns it.
+     * You can obtain a Modifier with the static constants in the Finnegan.Modifier nested class, the
+     * Finnegan.modifier() method, or Modifier's constructor.
+     * @param mods an array or vararg of Modifier objects
+     * @return a copy of this with the Modifiers added
+     */
+    public Finnegan addModifiers(Collection<Modifier> mods)
+    {
+        Finnegan next = copy();
+        next.modifiers.addAll(mods);
+        return next;
+    }
+
+    /**
+     * Adds the specified Modifier objects to a copy of this Finnegan and returns it.
+     * You can obtain a Modifier with the static constants in the Finnegan.Modifier nested class, the
+     * Finnegan.modifier() method, or Modifier's constructor.
+     * @param mods an array or vararg of Modifier objects
+     * @return a copy of this with the Modifiers added
+     */
+    public Finnegan addModifiers(Modifier... mods)
+    {
+        Finnegan next = copy();
+        Collections.addAll(next.modifiers, mods);
+        return next;
+    }
+
+    /**
+     * Creates a copy of this Finnegan with no modifiers.
+     * @return a copy of this Finnegan with modifiers removed.
+     */
+    public Finnegan removeModifiers()
+    {
+        Finnegan next = copy();
+        next.modifiers.clear();
+        return next;
+    }
+
+    public static Modifier modifier(String pattern, String replacement)
+    {
+        return new Modifier(pattern, replacement);
+    }
+    public static Modifier modifier(String pattern, String replacement, double chance)
+    {
+        return new Modifier(pattern, replacement, chance);
+    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -1323,21 +2122,23 @@ public class Finnegan implements Serializable {
         if (syllableFrequencies != null ? !syllableFrequencies.equals(finnegan.syllableFrequencies) : finnegan.syllableFrequencies != null)
             return false;
         // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        return Arrays.equals(sanityChecks, finnegan.sanityChecks) && (rng != null ? rng.equals(finnegan.rng) : finnegan.rng == null);
+        if (!Arrays.equals(sanityChecks, finnegan.sanityChecks)) return false;
+        if(rng != null ? !rng.equals(finnegan.rng) : finnegan.rng != null)
+            return false;
+        return modifiers != null ? modifiers.equals(finnegan.modifiers) : finnegan.modifiers == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        result = Arrays.hashCode(openingVowels);
-        result = 31 * result + Arrays.hashCode(midVowels);
-        result = 31 * result + Arrays.hashCode(openingConsonants);
-        result = 31 * result + Arrays.hashCode(midConsonants);
-        result = 31 * result + Arrays.hashCode(closingConsonants);
-        result = 31 * result + Arrays.hashCode(vowelSplitters);
-        result = 31 * result + Arrays.hashCode(closingSyllables);
+        long result, temp;
+        result = hash64(openingVowels);
+        result = 31 * result + hash64(midVowels);
+        result = 31 * result + hash64(openingConsonants);
+        result = 31 * result + hash64(midConsonants);
+        result = 31 * result + hash64(closingConsonants);
+        result = 31 * result + hash64(vowelSplitters);
+        result = 31 * result + hash64(closingSyllables);
         result = 31 * result + (clean ? 1 : 0);
         result = 31 * result + (syllableFrequencies != null ? syllableFrequencies.hashCode() : 0);
         temp = Double.doubleToLongBits(totalSyllableFrequency);
@@ -1350,9 +2151,10 @@ public class Finnegan implements Serializable {
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(syllableEndFrequency);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + Arrays.hashCode(sanityChecks);
+        result = 31 * result + (sanityChecks != null ? sanityChecks.length + 1 : 0);
+        result = 31 * result + (modifiers != null ? modifiers.hashCode() : 0);
         result = 31 * result + (rng != null ? rng.hashCode() : 0);
-        return result;
+        return (int)result;
     }
 
     @Override
@@ -1371,8 +2173,9 @@ public class Finnegan implements Serializable {
                 ", vowelEndFrequency=" + vowelEndFrequency +
                 ", vowelSplitFrequency=" + vowelSplitFrequency +
                 ", syllableEndFrequency=" + syllableEndFrequency +
-                ", sane=" + Arrays.toString(sanityChecks) +
+                ", sanityChecks=" + Arrays.toString(sanityChecks) +
                 ", clean=" + clean +
+                ", modifiers=" + modifiers +
                 ", RNG=" + rng +
                 '}';
     }
@@ -1384,4 +2187,307 @@ public class Finnegan implements Serializable {
     public void setSeed(long seed) {
         rng.state = seed;
     }
+
+    static long hash64(char[] data)
+    {
+        if(data == null)
+            return 0;
+        long h = -3750763034362895579L, len = data.length;
+        for (int i = 0; i < len; i++) {
+            h ^= data[i] & 0xff;
+            h *= 1099511628211L;
+            h ^= data[i] >>> 8;
+            h *= 1099511628211L;
+        }
+        return h;
+    }
+    static long hash64(int[] data)
+    {
+        if(data == null)
+            return 0;
+        long h = -3750763034362895579L, len = data.length;
+        for (int i = 0; i < len; i++) {
+            h ^= data[i] & 0xff;
+            h *= 1099511628211L;
+            h ^= (data[i] >>> 8) & 0xff;
+            h *= 1099511628211L;
+            h ^= (data[i] >>> 16) & 0xff;
+            h *= 1099511628211L;
+            h ^= data[i] >>> 24;
+            h *= 1099511628211L;
+        }
+        return h;
+    }
+    static long hash64(double[] data)
+    {
+        if(data == null)
+            return 0;
+        long h = -3750763034362895579L, len = data.length, t;
+        for (int i = 0; i < len; i++) {
+            t = Double.doubleToRawLongBits(data[i]);
+            h ^= (t & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 8) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 16) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 24) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 32) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 40) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 48) & 0xff);
+            h *= 1099511628211L;
+            h ^= (t >>> 56);
+            h *= 1099511628211L;
+        }
+        return h;
+    }
+    static long hash64(String s)
+    {
+        if(s == null)
+            return 0;
+        return hash64(s.toCharArray());
+    }
+    static long hash64(String[] data)
+    {
+        if(data == null)
+            return 0;
+        long h = -3750763034362895579L, len = data.length, t;
+        for (int i = 0; i < len; i++) {
+            t = hash64(data[i]);
+            h ^= (t & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 8) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 16) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 24) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 32) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 40) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 48) & 0xff);
+            h *= 1099511628211L;
+            h ^= (t >>> 56);
+            h *= 1099511628211L;
+        }
+        return h;
+    }
+    static long hash64(String[]... data)
+    {
+        if(data == null)
+            return 0;
+        long h = -3750763034362895579L, len = data.length, t;
+        for (int i = 0; i < len; i++) {
+            t = hash64(data[i]);
+            h ^= (t & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 8) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 16) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 24) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 32) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 40) & 0xff);
+            h *= 1099511628211L;
+            h ^= ((t >>> 48) & 0xff);
+            h *= 1099511628211L;
+            h ^= (t >>> 56);
+            h *= 1099511628211L;
+        }
+        return h;
+    }
+
+
+    public Finnegan copy()
+    {
+        return new Finnegan(openingVowels, midVowels, openingConsonants, midConsonants, closingConsonants,
+                closingSyllables, vowelSplitters, syllableFrequencies, vowelStartFrequency, vowelEndFrequency,
+                vowelSplitFrequency, syllableEndFrequency, sanityChecks, clean, rng, modifiers);
+    }
+
+    public static class Modifier implements Serializable
+    {
+        private static final long serialVersionUID = 1734863678490422371L;
+        public final Alteration[] alterations;
+        public Modifier()
+        {
+            this("sh?", "th");
+        }
+        public Modifier(String pattern, String replacement)
+        {
+            alterations = new Alteration[]{new Alteration(pattern, replacement)};
+        }
+
+        public Modifier(String pattern, String replacement, double chance)
+        {
+            alterations = new Alteration[]{new Alteration(pattern, replacement, chance)};
+        }
+
+        public Modifier(Alteration... alts)
+        {
+            alterations = (alts == null) ? new Alteration[0] : alts;
+        }
+
+        public StringBuffer modify(RNG rng, StringBuffer sb)
+        {
+            StringBuffer sb2;
+            for(Alteration alt : alterations)
+            {
+                Matcher m = alt.pattern.matcher(sb);
+                sb2 = new StringBuffer();
+                while (m.find()) {
+                    if(rng.nextDouble() < alt.chance)
+                        m.appendReplacement(sb2, alt.replacer);
+                    else
+                        m.appendReplacement(sb2, m.group());
+                }
+                m.appendTail(sb2);
+                sb = sb2;
+            }
+            return sb;
+        }
+
+        /**
+         * For a character who always pronounces 's', 'ss', and 'sh' as 'th'.
+         */
+        public static final Modifier LISP = new Modifier("[sśŝşšș]+h?", "th");
+
+        /**
+         * For a character who always lengthens 's' and 'z' sounds not starting a word.
+         */
+        public static final Modifier HISS = new Modifier("(.)([sśŝşšșzźżž])+", "$1$2$2$2");
+
+        /**
+         * For a character who has a 20% chance to repeat a starting consonant or vowel.
+         */
+        public static final Modifier STUTTER = new Modifier(
+                new Alteration("^([^aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųyýÿŷỳαοειυаеёийъыэюяоу]+)", "$1-$1", 0.2),
+                new Alteration("^([aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųαοειυаеёийъыэюяоу]+)", "$1-$1", 0.2));
+
+        /**
+         * For a language that has a 40% chance to repeat a single Latin vowel (a, e, o, or a variant on one of them
+         * like æ or ö).
+         */
+        public static final Modifier DOUBLE_VOWELS = new Modifier(
+                "([aàáâãäåæāăąǻǽeèéêëēĕėęěòóôõöøōŏőœǿ])([^aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųyýÿŷỳ]|$)", "$1$1$2", 0.4);
+
+
+        /**
+         * For a language that has a 50% chance to repeat a single consonant.
+         */
+        public static final Modifier DOUBLE_CONSONANTS = new Modifier("([aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųyýÿŷỳαοειυаеёийъыэюяоу]|^)" +
+                "([^aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųyýÿŷỳαοειυаеёийъыэюяоуqwhjx])" +
+                "([aàáâãäåæāăąǻǽeèéêëēĕėęěiìíîïĩīĭįıoòóôõöøōŏőœǿuùúûüũūŭůűųyýÿŷỳαοειυаеёийъыэюяоу]|$)", "$1$2$2$3", 0.5);
+
+        /**
+         * For a language that never repeats the same letter twice in a row.
+         */
+        public static final Modifier NO_DOUBLES = new Modifier("(.)\\1", "$1");
+
+        /**
+         * Creates a Modifier that will replace the nth char in initial with the nth char in change. Expects initial and
+         * change to be the same length, but will use the lesser length if they are not equal-length. Because of the
+         * state of the text at the time modifiers are run, only lower-case letters need to be searched for.
+         * @param initial a String containing lower-case letters or other symbols to be swapped out of a text
+         * @param change a String containing characters that will replace occurrences of characters in initial
+         * @return a Modifier that can be added to a Finnegan with its addModifiers() method
+         */
+        public static Modifier replacementTable(String initial, String change)
+        {
+            Alteration[] alts = new Alteration[Math.min(initial.length(), change.length())];
+            for (int i = 0; i < alts.length; i++) {
+                //literal string syntax; avoids sensitive escaping issues and also doesn't need a character class,
+                // which is slightly slower and has some odd escaping cases.
+                alts[i] = new Alteration("\\Q" + initial.charAt(i) + "\\E", change.substring(i, i+1));
+            }
+            return new Modifier(alts);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Modifier modifier = (Modifier) o;
+
+            // Probably incorrect - comparing Object[] arrays with Arrays.equals
+            return Arrays.equals(alterations, modifier.alterations);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(alterations);
+        }
+
+        @Override
+        public String toString() {
+            return "Modifier{" +
+                    "alterations=" + Arrays.toString(alterations) +
+                    '}';
+        }
+    }
+
+    public static class Alteration implements Serializable
+    {
+        private static final long serialVersionUID = -2138854697837563188L;
+        public Pattern pattern;
+        public String replacer;
+        public double chance;
+        public Alteration()
+        {
+            this("[sśŝşšș]+h?", "th");
+        }
+        public Alteration(String pattern, String replacement)
+        {
+            this.pattern = Pattern.compile(pattern);
+            replacer = replacement;
+            chance = 1.0;
+        }
+        public Alteration(String pattern, String replacement, double chance)
+        {
+            this.pattern = Pattern.compile(pattern);
+            replacer = replacement;
+            this.chance = chance;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Alteration that = (Alteration) o;
+
+            if (Double.compare(that.chance, chance) != 0) return false;
+            return replacer.equals(that.replacer);
+
+        }
+
+        @Override
+        public int hashCode() {
+            long result;
+            long temp;
+            result = hash64(replacer);
+            result = 31 * result + pattern.hashCode();
+            temp = Double.doubleToLongBits(chance);
+            result = 31 * result + (temp ^ (temp >>> 32));
+            return (int)result;
+        }
+
+        @Override
+        public String toString() {
+            return "Alteration{" +
+                    "pattern=" + pattern +
+                    "replacer=" + replacer +
+                    ", chance=" + chance +
+                    '}';
+        }
+    }
+
+
 }
