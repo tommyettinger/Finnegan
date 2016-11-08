@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  */
 public class Finnegan implements Serializable {
 
-    public class RNG implements Serializable {
+    public static class RNG implements Serializable {
         private static final long serialVersionUID = 4378460257281186370L;
 
         /**
